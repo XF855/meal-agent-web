@@ -117,11 +117,13 @@ web/
 | action | 触发页面 | 输入 payload 关键字段 | 输出 schema |
 | --- | --- | --- | --- |
 | `recognizeMeal` | Today 拍照 | `imageDataUrl, profile, recentStores` | `{items:[{name,portion}]}` |
-| `recommend` | RecommendList | `profile, todayContext, recentDiary, ageMode, recentStores, refineHint, previousPicks` | `{picks:[{key,title,dish,reason,budget,time,allergens,swaps,howto}]}` |
+| `recommend` | RecommendList | `profile, todayContext, recentDiary, ageMode, recentStores, location, refineHint, previousPicks` | `{picks:[…]}, meta:{nearbyPlacesCount}` |
 | `dailyNutrition` | Today 首屏 | `profile, ageMode, recentDiary, todayContext` | `{items:[{name,portion,why}], summary}` |
 | `party` | Party 生成方案 | `members[], party{scene,budget}` | `{picks:[{key,title,dish,reason,budget,notes}]}` |
 | `chat` | RecommendDetail 追问 | `userText, profile, todayContext, history` | `{reply: string}` |
 | （未定义） | — | — | 后端返 `400 unknown_action` |
+
+**recommend 的位置注入**：当 `payload.location` 存在且 `todayContext.scene ∈ {'餐厅', '食堂'}` 时，后端会先打 Google Places API 拉附近餐厅（评分 ≥ 3.8、评价数 ≥ 15 的前 8 家），把 `nearbyPlaces` 注入 Claude 上下文再让它生成推荐。前端不直接调 Places，Key 只在服务端。
 
 ### 4.3 为什么这样切
 
@@ -169,19 +171,26 @@ Claude 返回文本 → 正则抽 JSON → parse → 校验 picks 是数组
 **关键决策：排序逻辑完全交给 Claude 处理，前端只做数据组装。** 好处是行为符合大模型的自然语言理解能力；风险是每次结果不完全可复现——这在饮食推荐里可以接受。
 
 ### 5.1 System Prompt（约束模型行为）
-摘自 `api/agent.js`：
+摘自 `api/agent.js`，2026-08 版：
 ```
-你是一个"饮食决策 Agent"。目标：在安全、营养、口味、情绪、便利之间，
-帮用户在 1 分钟内决定"下一餐吃什么"。
-
 必须遵守：
 1. 安全过滤优先：过敏、明确忌口、年龄模式规则先于任何评分。过敏原绝不出现在推荐里。
-2. 单人推荐固定返回三张卡：今天最合适 / 今天最想吃 / 今天最省事。
-3. 聚餐推荐固定返回三张卡：最适合所有人 / 最有趣 / 最方便，必须先取所有参与者共同的可吃菜系再做选择。
-4. 菜名要具体，附大致份量、做法或点单方式。
-5. 若提供了近期外卖店铺记录，可以直接推荐用户常吃店铺里的菜（记得写出店名）。
-6. 若用户填了 refineHint（"更健康" / "更符合口味"），下一次推荐要显著向该方向靠拢。
-7. 输出必须是合法 JSON，字段严格匹配用户消息中的 schema，不要输出 JSON 以外的任何字符。
+2. 区分三种约束的力度：
+   - allergies（过敏）：硬性排除，绝不推荐。
+   - taboos（忌口，如"不吃猪肉/不吃牛肉"）：硬性排除，绝不推荐。
+   - healthPrefs（健康偏好，如"低钠/低糖/低脂/低嘌呤"）：软性倾向，向该方向靠拢即可，不必完全避开。
+3. 单人推荐固定返回三张卡：今天最合适 / 今天最想吃 / 今天最省事。
+4. 聚餐推荐固定返回三张卡：最适合所有人 / 最有趣 / 最方便，任一人的 allergies/taboos 都要硬性排除。
+5. 菜名要具体，附大致份量、做法或点单方式。
+6. 若提供了近期外卖店铺记录（recentStores），可以直接推荐用户常吃店铺里的菜（记得写出店名）。
+7. 若提供了附近餐厅列表（nearbyPlaces）且用户场景是"餐厅"或"食堂"：
+   - 三张推荐卡里至少有两张要来自 nearbyPlaces。
+   - dish 字段格式："餐厅名 · 具体菜品"。
+   - reason 里必须提到评分（rating）和距离（distanceMeters）。
+   - 用 primaryType 和 typicalDishes 判断该店可能提供什么菜。
+   - 优先高评分（>=4.3）且 userRatingCount >= 40 的店；两者都满足时距离越近越优。
+8. 若用户填了 refineHint（"更健康" / "更符合口味"），下一次推荐要显著向该方向靠拢。
+9. 输出必须是合法 JSON，字段严格匹配用户消息中的 schema。
 ```
 
 ### 5.2 用户消息里塞进模型的完整上下文
@@ -310,6 +319,36 @@ Claude 返回文本 → 正则抽 JSON → parse → 校验 picks 是数组
 - 详情页四个快捷按钮：换主食 / 更辣 / 更便宜 / 教做法
 - Payload 里带 `history`（最近 8 条消息）+ `profile` + `todayContext`
 - 模型返回 `{reply: string}`
+
+### 5.10 附近餐厅（Google Places）
+
+**触发条件**：`todayContext.scene ∈ {'餐厅', '食堂'}` 且用户在 Today 页点过"开启定位"。
+
+**前端流程**（`Today.vue`）：
+1. 用户把场景切到"餐厅/食堂" → 卡片下方出现"开启定位，用附近好评餐厅优化推荐 →"
+2. 点一下调用 `navigator.geolocation.getCurrentPosition`
+3. 获得的 `{lat, lng, accuracy}` 存进 `localStorage.meal_location`（有效期 30 分钟）
+4. 后续 `RecommendList.vue` 每次 recommend 都自动把 `location` 塞进 payload
+
+**后端流程**（`api/agent.js` 的 `fetchNearbyRestaurants`）：
+1. 调 `POST https://places.googleapis.com/v1/places:searchNearby`（Places API New）
+2. `locationRestriction.circle.radius` 餐厅 1200m / 食堂 500m
+3. `includedTypes: ['restaurant', 'cafe', 'meal_takeaway', 'bakery']`
+4. `X-Goog-FieldMask` 精确挑字段（不返回不需要的以省钱）：id / displayName / primaryType / types / rating / userRatingCount / priceLevel / location / formattedAddress / currentOpeningHours.openNow
+5. 客户端二次过滤：`rating >= 3.8` 且 `userRatingCount >= 15`，先按评分再按 haversine 距离排序，取前 8
+6. 每家店额外注入 `typicalDishes`——按 `primaryType` 硬编码的菜品线索表（`chinese_restaurant → ['家常菜','面条','盖饭']` 等），帮 Claude 判断这家店可能有什么菜
+7. 把最终 8 家店以 `nearbyPlaces` 字段合并进 recommend payload
+8. Claude 收到后按 System Prompt 第 7 条：三张卡至少两张来自 nearbyPlaces，dish 格式`餐厅名 · 菜品`，reason 写评分和距离
+
+**成本控制**：
+- FieldMask 精挑字段（vs. 返回全部字段），单次调用属 Nearby Search Pro tier
+- 前端 30 分钟位置缓存 → 30 分钟内多次刷新推荐不会重复触发 Places
+- 后端过滤评分低/评价少的店 → Claude 的 context 只含真正有质量的候选
+- Places 报错 / Key 缺失 / 用户拒定位都会 **静默跳过**，退化为不带 nearbyPlaces 的普通推荐，UI 永远不白屏
+
+**推荐卡展示**：
+- RecommendList 顶部若使用了附近餐厅，会有一行淡灰小字"· 结合了附近 N 家好评餐厅"
+- 具体 pick 的 reason 由 Claude 生成，形如"评分 4.6 · 约 240m · 你最近没吃过日料"
 
 ---
 
@@ -449,6 +488,7 @@ git branch -M main && git push -u origin main
 | `ANTHROPIC_MODEL` | 可选 | `claude-opus-4-7` | 也可 `claude-sonnet-4-6` / `claude-haiku-4-5-20251001` |
 | `ANTHROPIC_BASE_URL` | 可选 | `https://api.anthropic.com` | 第三方代理（eazo 等） |
 | `ANTHROPIC_AUTH_STYLE` | 可选 | `x-api-key` | 代理若要 Bearer 就填 `bearer` |
+| `GOOGLE_PLACES_API_KEY` | 可选 | 无 | 启用后，用户场景="餐厅/食堂" 且授权定位时，推荐会结合附近好评餐厅 |
 
 **加完变量必须 Deployments → Redeploy（取消 Use existing Build Cache）**，旧部署不会自动读到新变量。
 

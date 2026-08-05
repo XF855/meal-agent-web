@@ -70,6 +70,16 @@
               :class="{active: ctx.scene === o}" @click="set('scene', o)">{{ o }}</span>
       </div>
 
+      <div v-if="ctx.scene === '餐厅' || ctx.scene === '食堂'" class="place-row">
+        <div v-if="location" class="place-ok">
+          已使用当前位置 · 推荐会结合附近好评餐厅
+          <span class="place-link" @click="refreshLocation">重新定位</span>
+        </div>
+        <div v-else class="place-hint" @click="refreshLocation">
+          {{ locating ? '定位中…' : '开启定位，用附近好评餐厅优化推荐 →' }}
+        </div>
+      </div>
+
       <div class="section-label">此刻特别想吃</div>
       <div class="row">
         <span v-for="o in craveOptions" :key="o" class="tag"
@@ -115,7 +125,8 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   getProfile, getDiary, getTodayContext, setTodayContext,
-  deriveAgeMode, setPending, getDeliveryStores
+  deriveAgeMode, setPending, getDeliveryStores,
+  getSavedLocation, requestGeolocation
 } from '../services/store.js'
 import { recognizeMeal, dailyNutrition } from '../services/agent.js'
 
@@ -135,6 +146,17 @@ const capturing = ref(false)
 const nutrition = ref(null)
 const nutritionLoading = ref(false)
 const expanded = ref(-1)   // 当前展开的营养项索引；-1 表示全部收起
+const location = ref(null)
+const locating = ref(false)
+
+async function refreshLocation() {
+  if (locating.value) return
+  locating.value = true
+  const loc = await requestGeolocation()
+  locating.value = false
+  if (loc) location.value = loc
+  else alert('无法获取当前位置，请在浏览器设置里允许定位权限。')
+}
 
 function toggleExpand(idx) {
   expanded.value = expanded.value === idx ? -1 : idx
@@ -236,6 +258,9 @@ onMounted(() => {
 
   // 首屏立即拉一次营养建议（有缓存 5 分钟）
   loadNutrition()
+
+  // 若已授权过位置，读出缓存
+  location.value = getSavedLocation()
 })
 
 function set(field, val) {
@@ -369,4 +394,23 @@ function compressToDataUrl(file) {
 .grid-item:active { opacity: 0.5; }
 .grid-item .ico { font-size: 20px; margin-bottom: 8px; display: block; opacity: 0.7; }
 .reminder { color: #5a4a3f; font-size: 14px; line-height: 1.7; margin: 0; }
+
+.place-row { margin-top: 14px; }
+.place-hint {
+  color: #c46a3a; font-size: 13px; cursor: pointer;
+  padding: 10px 14px; border-radius: 10px;
+  background: #f3ecdf; letter-spacing: 0.01em;
+  transition: opacity .15s;
+}
+.place-hint:active { opacity: 0.7; }
+.place-ok {
+  color: #5a4a3f; font-size: 13px;
+  padding: 10px 14px; border-radius: 10px;
+  background: #f3ecdf;
+}
+.place-link {
+  color: #c46a3a; margin-left: 8px;
+  cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px;
+}
 </style>

@@ -1,10 +1,10 @@
 // Vercel Serverless Function: /api/agent
 // 环境变量：
-//   ANTHROPIC_API_KEY   必填，你的密钥
-//   ANTHROPIC_MODEL     可选，默认 claude-opus-4-7
-//   ANTHROPIC_BASE_URL  可选，第三方代理（如 eazo）用这个替换官方地址
-//                       例：https://api.eazo.io  或  https://api.eazo.io/v1
-//   ANTHROPIC_AUTH_STYLE 可选，'x-api-key'（默认，官方）或 'bearer'（多数代理）
+//   ANTHROPIC_API_KEY        必填，Claude 密钥
+//   ANTHROPIC_MODEL          可选，默认 claude-opus-4-7
+//   ANTHROPIC_BASE_URL       可选，第三方代理（如 eazo）用这个替换官方地址
+//   ANTHROPIC_AUTH_STYLE     可选，'x-api-key'（默认，官方）或 'bearer'（多数代理）
+//   GOOGLE_PLACES_API_KEY    可选，启用后 recommend 会在场景=餐厅/食堂时拉附近餐厅
 // 未配置 KEY 时自动降级为 Mock，前端行为不受影响
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-7'
@@ -29,9 +29,15 @@ const SYSTEM_PROMPT = `你是一个"饮食决策 Agent"。目标：在安全、�
 3. 单人推荐固定返回三张卡：今天最合适 / 今天最想吃 / 今天最省事。
 4. 聚餐推荐固定返回三张卡：最适合所有人 / 最有趣 / 最方便，必须先取所有参与者共同的可吃菜系再做选择。聚餐中任一人的 allergies/taboos 都要硬性排除；healthPrefs 尽量兼顾。
 5. 菜名要具体，附大致份量、做法或点单方式。
-6. 若提供了近期外卖店铺记录，可以直接推荐用户常吃店铺里的菜（记得写出店名）。
-7. 若用户填了 refineHint（"更健康" / "更符合口味"），下一次推荐要显著向该方向靠拢。
-8. 输出必须是合法 JSON，字段严格匹配用户消息中的 schema，不要输出 JSON 以外的任何字符。`
+6. 若提供了近期外卖店铺记录（recentStores），可以直接推荐用户常吃店铺里的菜（记得写出店名）。
+7. 若提供了附近餐厅列表（nearbyPlaces）且用户场景是"餐厅"或"食堂"：
+   - 三张推荐卡里至少有两张要来自 nearbyPlaces。
+   - dish 字段格式："餐厅名 · 具体菜品"。
+   - reason 里必须提到评分（rating）和距离（distanceMeters），例如"评分 4.6 · 约 240m"。
+   - 用餐厅的 primaryType 和 typicalDishes 判断该店可能提供什么菜；如果这家店的品类与用户过敏/忌口冲突，则跳过该店。
+   - 优先高评分（>=4.3）且评价数不少的店（userRatingCount >= 40）；两者都满足时距离越近越优。
+8. 若用户填了 refineHint（"更健康" / "更符合口味"），下一次推荐要显著向该方向靠拢。
+9. 输出必须是合法 JSON，字段严格匹配用户消息中的 schema，不要输出 JSON 以外的任何字符。`
 
 const MOCK = {
   recognizeMeal: {
@@ -144,11 +150,26 @@ export default async function handler(req, res) {
     }
 
     if (action === 'recommend') {
+      const enriched = { ...(payload || {}) }
+      // 场景为餐厅/食堂 且用户授权了位置 → 拉附近餐厅
+      const scene = enriched.todayContext && enriched.todayContext.scene
+      const loc = enriched.location
+      if (loc && loc.lat && loc.lng && (scene === '餐厅' || scene === '食堂')) {
+        try {
+          const places = await fetchNearbyRestaurants(loc, scene)
+          if (places && places.length) enriched.nearbyPlaces = places
+        } catch (e) {
+          console.error('places api error:', e.message)
+        }
+      }
       try {
-        const data = await callClaude(payload || {},
+        const data = await callClaude(enriched,
           '{picks:[{key,title,dish,reason,budget,time,allergens:[string],swaps:[string],howto}]}')
         if (data && Array.isArray(data.picks)) {
-          return res.status(200).json({ ok: true, source: 'claude', data })
+          return res.status(200).json({
+            ok: true, source: 'claude', data,
+            meta: { nearbyPlacesCount: (enriched.nearbyPlaces || []).length }
+          })
         }
       } catch (e) { console.error('recommend claude error:', e.message) }
       return res.status(200).json({ ok: true, source: 'mock', data: MOCK.recommend })
@@ -199,6 +220,115 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: String(e && e.message || e) })
   }
 }
+
+// ---------------- Google Places (New) ----------------
+// 文档：https://developers.google.com/maps/documentation/places/web-service/nearby-search
+// 注意用的是 v1 endpoint（新版），FieldMask 精确挑字段控成本
+async function fetchNearbyRestaurants(loc, scene) {
+  const key = process.env.GOOGLE_PLACES_API_KEY
+  if (!key) return []
+
+  const radius = scene === '食堂' ? 500 : 1200  // 食堂通常在很近的范围内
+  const body = {
+    includedTypes: ['restaurant', 'cafe', 'meal_takeaway', 'bakery'],
+    maxResultCount: 15,
+    locationRestriction: {
+      circle: {
+        center: { latitude: loc.lat, longitude: loc.lng },
+        radius
+      }
+    },
+    rankPreference: 'POPULARITY',
+    languageCode: 'zh-CN'
+  }
+  const fieldMask = [
+    'places.id',
+    'places.displayName',
+    'places.primaryType',
+    'places.types',
+    'places.rating',
+    'places.userRatingCount',
+    'places.priceLevel',
+    'places.location',
+    'places.formattedAddress',
+    'places.currentOpeningHours.openNow'
+  ].join(',')
+
+  const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'X-Goog-Api-Key': key,
+      'X-Goog-FieldMask': fieldMask
+    },
+    body: JSON.stringify(body)
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error('places_http_' + res.status + ' ' + text.slice(0, 200))
+  }
+  const data = await res.json()
+  const places = (data && data.places) || []
+
+  return places
+    .filter(p => p && p.location && p.displayName)
+    .map(p => {
+      const dm = haversineMeters(loc.lat, loc.lng, p.location.latitude, p.location.longitude)
+      return {
+        name: (p.displayName && p.displayName.text) || '',
+        primaryType: p.primaryType || (p.types && p.types[0]) || '',
+        types: (p.types || []).slice(0, 4),
+        rating: p.rating || null,
+        userRatingCount: p.userRatingCount || 0,
+        priceLevel: p.priceLevel || null,       // PRICE_LEVEL_INEXPENSIVE / MODERATE / EXPENSIVE / VERY_EXPENSIVE
+        openNow: !!(p.currentOpeningHours && p.currentOpeningHours.openNow),
+        address: p.formattedAddress || '',
+        distanceMeters: Math.round(dm),
+        typicalDishes: dishHintByType(p.primaryType || (p.types && p.types[0]) || '')
+      }
+    })
+    // 过滤掉评分过低或几乎没评分的
+    .filter(p => (p.rating || 0) >= 3.8 && p.userRatingCount >= 15)
+    // 排序：先按评分再按距离
+    .sort((a, b) => (b.rating - a.rating) || (a.distanceMeters - b.distanceMeters))
+    .slice(0, 8)
+}
+
+// primary type → 该店大概会有的菜品线索，帮 Claude 判断
+function dishHintByType(type) {
+  const t = (type || '').toLowerCase()
+  const hints = {
+    chinese_restaurant: ['家常菜', '面条', '盖饭'],
+    japanese_restaurant: ['寿司', '拉面', '定食'],
+    korean_restaurant: ['石锅拌饭', '烤肉', '部队锅'],
+    italian_restaurant: ['意面', '披萨', '沙拉'],
+    thai_restaurant: ['冬阴功', '咖喱', '芒果糯米饭'],
+    indian_restaurant: ['咖喱', '烤饼', '香饭'],
+    mexican_restaurant: ['塔可', '卷饼', '玉米片'],
+    american_restaurant: ['汉堡', '牛排', '沙拉'],
+    seafood_restaurant: ['海鲜', '鱼汤'],
+    steak_house: ['牛排'],
+    sushi_restaurant: ['寿司', '刺身'],
+    ramen_restaurant: ['拉面'],
+    fast_food_restaurant: ['汉堡', '炸鸡', '薯条'],
+    hamburger_restaurant: ['汉堡'],
+    pizza_restaurant: ['披萨'],
+    cafe: ['咖啡', '三明治', '轻食'],
+    bakery: ['面包', '甜点'],
+    meal_takeaway: ['盖饭', '面条', '快餐'],
+    vegetarian_restaurant: ['素菜', '沙拉']
+  }
+  return hints[t] || []
+}
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000
+  const toRad = d => d * Math.PI / 180
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+// ---------------- /Google Places ----------------
 
 function readBody(req) {
   return new Promise((resolve, reject) => {

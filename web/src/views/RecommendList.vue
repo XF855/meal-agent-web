@@ -1,6 +1,9 @@
 <template>
   <div>
     <p class="subtitle" v-if="loading">Agent 正在读取你的画像和今日状态…</p>
+    <p class="places-note" v-else-if="nearbyUsed > 0">
+      · 结合了附近 {{ nearbyUsed }} 家好评餐厅
+    </p>
 
     <div v-for="(p, idx) in picks" :key="p.key" class="card pick-card" @click="goDetail(idx)">
       <div class="pick-title">{{ p.title }}</div>
@@ -28,29 +31,35 @@ import { useRouter } from 'vue-router'
 import * as agent from '../services/agent.js'
 import {
   getProfile, getTodayContext, getDiary, setPending,
-  setLastReco, getLastReco, deriveAgeMode, getDeliveryStores
+  setLastReco, getLastReco, deriveAgeMode, getDeliveryStores,
+  getSavedLocation
 } from '../services/store.js'
 
 const router = useRouter()
 const picks = ref([])
 const loading = ref(true)
+const nearbyUsed = ref(0)
 
 async function load(refineHint) {
   loading.value = true
   const profile = getProfile()
   const last = getLastReco()
+  const todayCtx = getTodayContext()
+  const wantsPlaces = todayCtx && (todayCtx.scene === '餐厅' || todayCtx.scene === '食堂')
   const r = await agent.recommend({
     profile,
-    todayContext: getTodayContext(),
+    todayContext: todayCtx,
     recentDiary: getDiary().slice(0, 6),
     ageMode: deriveAgeMode(profile),
     recentStores: getDeliveryStores(5),
-    refineHint,                             // 'healthier' / 'tastier' / null
-    previousPicks: last ? last.picks : null  // 让模型避开与上一批过度重复
+    location: wantsPlaces ? getSavedLocation() : null,
+    refineHint,
+    previousPicks: last ? last.picks : null
   })
   loading.value = false
   if (r && r.ok) {
     picks.value = r.data.picks || []
+    nearbyUsed.value = (r.meta && r.meta.nearbyPlacesCount) || 0
     setLastReco({ picks: picks.value, refineHint, at: Date.now() })
   } else {
     alert('推荐失败')
@@ -78,6 +87,10 @@ onMounted(() => load(null))
   margin-bottom: 16px;
 }
 .pick-reason { color: #5a4a3f; font-size: 14px; line-height: 1.7; margin: 16px 0 0; }
+.places-note {
+  color: #a89684; font-size: 12px;
+  letter-spacing: 0.06em; margin: 0 0 8px 0;
+}
 .danger-tag { border-color: rgba(160,74,58,0.2); color: #a04a3a; }
 .refine .q-title {
   font-size: 12px; color: #a89684;

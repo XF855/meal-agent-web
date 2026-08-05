@@ -50,7 +50,45 @@ export function setPending(key, val) {
 }
 
 export function clearAll() {
-  [K_PROFILE, K_DIARY, K_TODAY, K_LAST_RECO, K_PENDING].forEach(k => localStorage.removeItem(k))
+  [K_PROFILE, K_DIARY, K_TODAY, K_LAST_RECO, K_PENDING, K_LOCATION].forEach(k => localStorage.removeItem(k))
+}
+
+// —— 地理位置（用于附近餐厅推荐） ——
+const K_LOCATION = 'meal_location'
+const LOCATION_MAX_AGE_MS = 30 * 60 * 1000 // 30 分钟
+
+export function getSavedLocation() {
+  const l = readJSON(K_LOCATION, null)
+  if (!l || !l.lat || !l.lng) return null
+  if (Date.now() - (l.savedAt || 0) > LOCATION_MAX_AGE_MS) return null
+  return l
+}
+export function saveLocation(loc) {
+  writeJSON(K_LOCATION, Object.assign({ savedAt: Date.now() }, loc))
+}
+export function clearLocation() {
+  localStorage.removeItem(K_LOCATION)
+}
+// 请求浏览器定位，返回 Promise<{lat,lng,accuracy}|null>
+export function requestGeolocation(timeoutMs) {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(null)
+    const t = setTimeout(() => resolve(null), timeoutMs || 8000)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        clearTimeout(t)
+        const loc = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy
+        }
+        saveLocation(loc)
+        resolve(loc)
+      },
+      () => { clearTimeout(t); resolve(null) },
+      { enableHighAccuracy: false, maximumAge: 5 * 60 * 1000, timeout: timeoutMs || 8000 }
+    )
+  })
 }
 
 // 收集最近使用过的外卖店铺，供推荐参考
