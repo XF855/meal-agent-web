@@ -17,6 +17,6 @@ const showTab = computed(() => !!route.meta?.tab)
 </script>
 
 <style>
-.app { min-height: 100vh; padding-bottom: 120px; background: #ffffff; }
+.app { min-height: 100vh; padding-bottom: 120px; background: #fbf7f0; }
 .page { padding: 40px 24px 32px; box-sizing: border-box; max-width: 640px; margin: 0 auto; }
 </style>

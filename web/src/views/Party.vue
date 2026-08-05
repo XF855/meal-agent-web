@@ -117,6 +117,7 @@ function newMember(base) {
     spicy: (base && base.spicy) != null ? base.spicy : 1,
     allergies: (base && base.allergies) || [],
     taboos: (base && base.taboos) || [],
+    healthPrefs: (base && base.healthPrefs) || [],
     _allergyDraft: '', _tabooDraft: '', _importDraft: ''
   }
 }
@@ -129,7 +130,8 @@ onMounted(() => {
     cuisines: (my.prefer && my.prefer.cuisines) || [],
     spicy: (my.prefer && my.prefer.spicy) != null ? my.prefer.spicy : 1,
     allergies: (my.basic && my.basic.allergies) || [],
-    taboos: (my.basic && my.basic.taboos) || []
+    taboos: (my.basic && my.basic.taboos) || [],
+    healthPrefs: (my.basic && my.basic.healthPrefs) || []
   }))
   members.value.push(newMember({}))  // 默认加一位待填的朋友
 })
@@ -154,6 +156,7 @@ function importFor(m) {
   m.spicy = prefer.spicy != null ? prefer.spicy : 1
   m.allergies = basic.allergies || []
   m.taboos = basic.taboos || []
+  m.healthPrefs = basic.healthPrefs || []
   m._importDraft = ''
   alert('已导入。核对信息后再生成方案。')
 }
@@ -165,7 +168,8 @@ async function generate() {
     members: members.value.map(m => ({
       name: m.name, isMe: m.isMe,
       cuisines: m.cuisines, spicy: m.spicy,
-      allergies: m.allergies, taboos: m.taboos
+      allergies: m.allergies, taboos: m.taboos,
+      healthPrefs: m.healthPrefs
     })),
     party: { ...party }
   }
@@ -180,37 +184,37 @@ async function generate() {
 .head { display: flex; align-items: center; margin-bottom: 10px; gap: 10px; }
 .member-name { display: flex; align-items: center; gap: 10px; flex: 1; }
 .badge {
-  background: transparent; color: #111;
-  border: 1px solid rgba(0,0,0,0.08);
+  background: #f0d9c5; color: #c46a3a;
+  border: 1px solid #f0d9c5;
   font-size: 11px; letter-spacing: 0.06em;
   padding: 2px 10px; border-radius: 999px;
 }
-.input.inline { flex: 1; padding: 10px 12px; font-size: 15px; background: transparent; }
-.input.inline:focus { background: #f7f7f7; }
+.input.inline { flex: 1; padding: 10px 12px; font-size: 15px; background: transparent; color: #2a1e17; }
+.input.inline:focus { background: #f3ecdf; }
 .act {
-  background: transparent; border: 1px solid rgba(0,0,0,0.08);
-  color: #666; padding: 4px 12px; font-size: 12px;
+  background: transparent; border: 1px solid rgba(74,52,40,0.10);
+  color: #5a4a3f; padding: 4px 12px; font-size: 12px;
   border-radius: 999px; cursor: pointer;
 }
-.act.danger { color: #8a3d34; border-color: rgba(138,61,52,0.2); }
+.act.danger { color: #a04a3a; border-color: rgba(160,74,58,0.2); }
 .add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row .input { flex: 1; }
 .add-btn {
-  background: transparent; border: 1px solid rgba(0,0,0,0.08);
-  color: #111; font-size: 13px;
+  background: transparent; border: 1px solid rgba(74,52,40,0.10);
+  color: #2a1e17; font-size: 13px;
   padding: 0 18px; border-radius: 999px; cursor: pointer;
 }
 .pick-title {
-  color: #8a8a8a; font-size: 12px;
+  color: #c46a3a; font-size: 12px;
   font-weight: 400; letter-spacing: 0.1em;
   text-transform: uppercase; margin-bottom: 12px;
 }
 .pick-dish {
-  font-size: 24px; font-weight: 300; color: #111;
+  font-size: 24px; font-weight: 300; color: #2a1e17;
   letter-spacing: -0.01em; line-height: 1.3;
   margin-bottom: 16px;
 }
-.pick-reason { color: #444; font-size: 14px; line-height: 1.7; margin: 10px 0; }
-.pick-notes { color: #8a8a8a; font-size: 13px; margin: 10px 0 0; font-style: italic; }
-.danger-tag { border-color: rgba(0,0,0,0.08); color: #8a3d34; }
+.pick-reason { color: #5a4a3f; font-size: 14px; line-height: 1.7; margin: 10px 0; }
+.pick-notes { color: #a89684; font-size: 13px; margin: 10px 0 0; font-style: italic; }
+.danger-tag { border-color: rgba(160,74,58,0.2); color: #a04a3a; }
 </style>

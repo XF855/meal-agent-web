@@ -91,19 +91,19 @@ function onPick() {
 
 <style scoped>
 .pick-title {
-  color: #8a8a8a; font-size: 12px;
+  color: #c46a3a; font-size: 12px;
   font-weight: 400; letter-spacing: 0.1em;
   text-transform: uppercase; margin-bottom: 12px;
 }
 .pick-dish {
-  font-size: 26px; font-weight: 300; color: #111;
+  font-size: 26px; font-weight: 300; color: #2a1e17;
   letter-spacing: -0.01em; line-height: 1.3;
   margin-bottom: 16px;
 }
-.pick-reason { color: #444; font-size: 14px; line-height: 1.7; margin: 0; }
+.pick-reason { color: #5a4a3f; font-size: 14px; line-height: 1.7; margin: 0; }
 .reply {
   margin-top: 16px; padding: 16px 18px;
-  background: #f7f7f7; border-radius: 12px;
-  color: #333; font-size: 14px; line-height: 1.7;
+  background: #f3ecdf; border-radius: 12px;
+  color: #2a1e17; font-size: 14px; line-height: 1.7;
 }
 </style>

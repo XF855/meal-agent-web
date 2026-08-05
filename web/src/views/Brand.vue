@@ -34,16 +34,16 @@ function skip() {
 .hero { text-align: left; margin-bottom: 40px; }
 .hero-title {
   font-size: 44px; font-weight: 300;
-  color: #111; line-height: 1.15;
+  color: #2a1e17; line-height: 1.15;
   letter-spacing: -0.02em;
 }
 .hero-sub {
-  color: #8a8a8a; font-size: 13px; line-height: 1.7;
+  color: #a89684; font-size: 13px; line-height: 1.7;
   margin-top: 4px; letter-spacing: 0.02em;
 }
 .hero-sub:first-of-type { margin-top: 20px; }
 .intro {
-  color: #444; font-size: 16px; line-height: 1.7;
+  color: #5a4a3f; font-size: 16px; line-height: 1.7;
   margin: 0 0 auto 0;
 }
 .actions { margin-top: 40px; }

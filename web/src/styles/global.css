@@ -1,13 +1,14 @@
-/* 极简：黑白灰 + 单一低饱和强调色 + 大留白 */
+/* 极简 · 温暖：奶油底 + 咖啡色文字 + 陶土色强调，充足留白 */
 :root {
-  --ink:      #111111;   /* 主文字 / 强调 */
-  --ink-2:    #444444;   /* 次级文字 */
-  --ink-3:    #8a8a8a;   /* 说明文字 */
-  --line:     rgba(0,0,0,0.08);
-  --paper:    #ffffff;   /* 背景 / 卡片 */
-  --paper-2:  #f7f7f7;   /* 输入框、次级面 */
-  --accent:   #2f4f4a;   /* 深墨绿：唯一强调色，低饱和 */
-  --danger:   #8a3d34;   /* 低饱和红棕：只用于危险动作 */
+  --ink:      #2a1e17;   /* 深咖：主文字 */
+  --ink-2:    #5a4a3f;   /* 中咖：次级文字 */
+  --ink-3:    #a89684;   /* 浅咖：说明文字 */
+  --line:     rgba(74,52,40,0.10);
+  --paper:    #fbf7f0;   /* 温奶油：底色 */
+  --paper-2:  #f3ecdf;   /* 米黄：输入框、次级面 */
+  --accent:   #c46a3a;   /* 陶土橙：唯一强调，克制使用 */
+  --accent-soft: #f0d9c5;/* 陶土浅：active tag 底色 */
+  --danger:   #a04a3a;   /* 低饱和红棕：只用于危险动作 */
 }
 
 * {
@@ -38,7 +39,6 @@ input, button, textarea { font-family: inherit; color: inherit; }
 }
 .card:last-of-type { border-bottom: none; }
 
-/* 页面容器（App.vue 已给 .page 加 padding，这里作为兜底） */
 .page { padding: 32px 24px 120px !important; }
 
 /* 排版：细字大标题 + 弱色副标 */
@@ -66,7 +66,7 @@ input, button, textarea { font-family: inherit; color: inherit; }
   margin: 20px 0 10px;
 }
 
-/* 按钮：主按钮墨色实心，次要按钮描边 */
+/* 按钮：主按钮陶土色实心，次要按钮描边 */
 .btn-primary, .btn-ghost {
   display: block; width: 100%;
   border-radius: 999px;
@@ -75,13 +75,13 @@ input, button, textarea { font-family: inherit; color: inherit; }
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--accent);
   cursor: pointer;
   transition: opacity .15s, background .15s, color .15s;
 }
-.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:active { opacity: 0.85; }
-.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
 .btn-ghost:active { background: var(--paper-2); }
 .btn-primary + .btn-ghost,
@@ -105,9 +105,9 @@ input, button, textarea { font-family: inherit; color: inherit; }
   transition: background .1s, color .1s, border-color .1s;
 }
 .tag.active {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-soft);
 }
 
 /* 输入 */
@@ -124,7 +124,7 @@ input, button, textarea { font-family: inherit; color: inherit; }
 }
 .input::placeholder, .textarea::placeholder { color: var(--ink-3); }
 .textarea { min-height: 76px; resize: vertical; line-height: 1.6; }
-.input:focus, .textarea:focus { background: #f0f0f0; }
+.input:focus, .textarea:focus { background: #ebe2d1; }
 
 /* 分割线 */
 .hr { height: 1px; background: var(--line); margin: 20px 0; border: none; }
@@ -132,5 +132,4 @@ input, button, textarea { font-family: inherit; color: inherit; }
 /* 危险色（保守使用） */
 .danger { color: var(--danger) !important; }
 
-/* 通用文字重量类，便于个别地方按需覆盖 */
 .serif-num { font-variant-numeric: tabular-nums; }

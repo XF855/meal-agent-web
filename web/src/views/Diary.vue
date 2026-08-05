@@ -142,7 +142,7 @@ function saveEdit() {
 
 <style scoped>
 .day-title {
-  color: #8a8a8a; font-size: 11px;
+  color: #a89684; font-size: 11px;
   letter-spacing: 0.14em; text-transform: uppercase;
   margin: 32px 0 12px;
 }
@@ -150,20 +150,20 @@ function saveEdit() {
   display: flex; align-items: center; margin-bottom: 10px; gap: 10px;
 }
 .meal {
-  color: #111; font-weight: 500; font-size: 15px;
+  color: #c46a3a; font-weight: 500; font-size: 15px;
   letter-spacing: 0.02em;
 }
-.time { color: #8a8a8a; font-size: 12px; }
+.time { color: #a89684; font-size: 12px; }
 .actions { margin-left: auto; display: flex; gap: 6px; }
 .act {
-  background: transparent; border: 1px solid rgba(0,0,0,0.08);
-  color: #666; padding: 4px 12px; font-size: 12px;
+  background: transparent; border: 1px solid rgba(74,52,40,0.10);
+  color: #5a4a3f; padding: 4px 12px; font-size: 12px;
   border-radius: 999px; cursor: pointer;
 }
-.act.danger { color: #8a3d34; border-color: rgba(138,61,52,0.2); }
+.act.danger { color: #a04a3a; border-color: rgba(160,74,58,0.2); }
 .preview { width: 100%; border-radius: 4px; margin: 10px 0; }
-.line { color: #333; font-size: 14px; line-height: 1.8; }
-.fb { color: #8a8a8a; font-size: 12px; margin-top: 10px; font-style: italic; }
+.line { color: #2a1e17; font-size: 14px; line-height: 1.8; }
+.fb { color: #a89684; font-size: 12px; margin-top: 10px; font-style: italic; }
 
 .mask {
   position: fixed; inset: 0; z-index: 200;
@@ -171,7 +171,7 @@ function saveEdit() {
   display: flex; align-items: flex-end;
 }
 .sheet {
-  width: 100%; background: #fff;
+  width: 100%; background: #fbf7f0;
   border-radius: 20px 20px 0 0;
   padding: 24px;
   max-height: 84vh; overflow-y: auto;
@@ -184,14 +184,14 @@ function saveEdit() {
 }
 .close {
   border: none; background: transparent;
-  font-size: 24px; line-height: 1; color: #888; cursor: pointer;
+  font-size: 24px; line-height: 1; color: #a89684; cursor: pointer;
 }
 .item-row {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding: 8px 0; border-bottom: 1px solid rgba(74,52,40,0.08);
 }
-.input.inline { flex: 1; padding: 8px 10px; font-size: 14px; background: transparent; }
-.input.inline:focus { background: #f7f7f7; }
+.input.inline { flex: 1; padding: 8px 10px; font-size: 14px; background: transparent; color: #2a1e17; }
+.input.inline:focus { background: #f3ecdf; }
 .btn-ghost.small {
   width: auto; padding: 8px 16px; font-size: 13px;
   margin: 10px 0 4px;

@@ -68,19 +68,19 @@ onMounted(() => load(null))
 <style scoped>
 .pick-card { cursor: pointer; padding: 32px 0; }
 .pick-title {
-  color: #8a8a8a; font-size: 12px;
+  color: #c46a3a; font-size: 12px;
   font-weight: 400; letter-spacing: 0.1em;
   text-transform: uppercase; margin-bottom: 12px;
 }
 .pick-dish {
-  font-size: 24px; font-weight: 300; color: #111;
+  font-size: 24px; font-weight: 300; color: #2a1e17;
   letter-spacing: -0.01em; line-height: 1.3;
   margin-bottom: 16px;
 }
-.pick-reason { color: #444; font-size: 14px; line-height: 1.7; margin: 16px 0 0; }
-.danger-tag { border-color: rgba(0,0,0,0.08); color: #8a3d34; }
+.pick-reason { color: #5a4a3f; font-size: 14px; line-height: 1.7; margin: 16px 0 0; }
+.danger-tag { border-color: rgba(160,74,58,0.2); color: #a04a3a; }
 .refine .q-title {
-  font-size: 12px; color: #8a8a8a;
+  font-size: 12px; color: #a89684;
   letter-spacing: 0.08em; text-transform: uppercase;
   margin-bottom: 16px; font-weight: 400;
 }

@@ -35,7 +35,7 @@
     </div>
 
     <div class="card">
-      <div class="section-label">明确忌口（宗教 / 医学 / 个人）</div>
+      <div class="section-label">明确忌口（宗教 / 个人不吃的食物）</div>
       <div class="row">
         <span v-for="o in tabooOptions" :key="o"
               class="tag" :class="{active: form.taboos.includes(o)}"
@@ -49,6 +49,24 @@
         <input class="input" placeholder="其他忌口，回车添加"
                v-model="tabooDraft" @keyup.enter="addCustom('taboos')"/>
         <button class="add-btn" @click="addCustom('taboos')">添加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">健康偏好（会向这些方向倾斜，但不是硬性排除）</div>
+      <div class="row">
+        <span v-for="o in healthPrefOptions" :key="o"
+              class="tag" :class="{active: form.healthPrefs.includes(o)}"
+              @click="toggle('healthPrefs', o)">{{ o }}</span>
+        <span v-for="c in customHealthPrefs" :key="'h-'+c"
+              class="tag active" @click="removeCustom('healthPrefs', c)">
+          {{ c }} ×
+        </span>
+      </div>
+      <div class="add-row">
+        <input class="input" placeholder="其他健康偏好，回车添加"
+               v-model="healthDraft" @keyup.enter="addCustom('healthPrefs')"/>
+        <button class="add-btn" @click="addCustom('healthPrefs')">添加</button>
       </div>
     </div>
 
@@ -73,22 +91,36 @@ import { getProfile, setProfile } from '../services/store.js'
 const router = useRouter()
 const form = reactive({
   birthYear: '', height: '', weight: '',
-  allergies: [], taboos: [], diet: '普通'
+  allergies: [], taboos: [], healthPrefs: [], diet: '普通'
 })
 const allergyOptions = ['花生', '坚果', '海鲜', '虾', '蟹', '牛奶', '鸡蛋', '大豆', '麸质', '芒果']
-const tabooOptions = ['不吃猪肉', '不吃牛肉', '不吃动物内脏', '低钠', '低糖', '低脂', '低嘌呤']
+const tabooOptions = ['不吃猪肉', '不吃牛肉', '不吃动物内脏', '不吃羊肉', '不吃海鲜']
+const healthPrefOptions = ['低钠', '低糖', '低脂', '低嘌呤', '控碳水', '多蔬菜', '多蛋白']
 const dietOptions = ['普通', '素食', '蛋奶素', '清真', '低碳水', '高蛋白']
 
 const allergyDraft = ref('')
 const tabooDraft = ref('')
+const healthDraft = ref('')
 
 // 自定义项 = 已选中但不在预设里的
 const customAllergies = computed(() => form.allergies.filter(x => !allergyOptions.includes(x)))
 const customTaboos = computed(() => form.taboos.filter(x => !tabooOptions.includes(x)))
+const customHealthPrefs = computed(() => form.healthPrefs.filter(x => !healthPrefOptions.includes(x)))
 
 onMounted(() => {
   const p = getProfile() || {}
-  if (p.basic) Object.assign(form, p.basic)
+  if (p.basic) {
+    Object.assign(form, p.basic)
+    if (!Array.isArray(form.healthPrefs)) form.healthPrefs = []
+    // 老数据兼容：把之前放在 taboos 里的健康偏好迁到 healthPrefs
+    const migrateFrom = ['低钠', '低糖', '低脂', '低嘌呤']
+    const moved = []
+    form.taboos = (form.taboos || []).filter(t => {
+      if (migrateFrom.includes(t)) { moved.push(t); return false }
+      return true
+    })
+    moved.forEach(m => { if (!form.healthPrefs.includes(m)) form.healthPrefs.push(m) })
+  }
 })
 function toggle(field, val) {
   const arr = form[field]
@@ -96,7 +128,9 @@ function toggle(field, val) {
   if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
 }
 function addCustom(field) {
-  const draftRef = field === 'allergies' ? allergyDraft : tabooDraft
+  const draftRef = field === 'allergies' ? allergyDraft
+                 : field === 'taboos' ? tabooDraft
+                 : healthDraft
   const v = (draftRef.value || '').trim()
   if (!v) return
   if (!form[field].includes(v)) form[field].push(v)
@@ -116,13 +150,13 @@ function next() {
 </script>
 
 <style scoped>
-.progress { height: 1px; background: rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 20px; }
-.progress-inner { height: 100%; background: #111; }
+.progress { height: 1px; background: rgba(74,52,40,0.10); overflow: hidden; margin-bottom: 20px; }
+.progress-inner { height: 100%; background: #c46a3a; }
 .add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row .input { flex: 1; }
 .add-btn {
-  background: transparent; border: 1px solid rgba(0,0,0,0.08);
-  color: #111; font-size: 13px;
+  background: transparent; border: 1px solid rgba(74,52,40,0.10);
+  color: #2a1e17; font-size: 13px;
   padding: 0 16px; border-radius: 999px; cursor: pointer;
 }
 </style>

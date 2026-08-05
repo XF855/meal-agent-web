@@ -120,16 +120,16 @@ function save() {
 <style scoped>
 .item-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding: 8px 0; border-bottom: 1px solid rgba(74,52,40,0.08);
 }
 .item-row:last-of-type { border-bottom: none; }
-.input.inline { flex: 1; padding: 10px 12px; font-size: 14px; background: transparent; }
-.input.inline:focus { background: #f7f7f7; }
+.input.inline { flex: 1; padding: 10px 12px; font-size: 14px; background: transparent; color: #2a1e17; }
+.input.inline:focus { background: #f3ecdf; }
 .act {
-  background: transparent; border: 1px solid rgba(0,0,0,0.08);
-  color: #666; padding: 4px 10px; font-size: 13px;
+  background: transparent; border: 1px solid rgba(74,52,40,0.10);
+  color: #5a4a3f; padding: 4px 10px; font-size: 13px;
   border-radius: 999px; cursor: pointer;
 }
-.act.danger { color: #8a3d34; border-color: rgba(138,61,52,0.2); }
-.hint { color: #8a8a8a; font-size: 12px; margin-top: 12px; font-style: italic; }
+.act.danger { color: #a04a3a; border-color: rgba(160,74,58,0.2); }
+.hint { color: #a89684; font-size: 12px; margin-top: 12px; font-style: italic; }
 </style>

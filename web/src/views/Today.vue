@@ -243,37 +243,37 @@ function compressToDataUrl(file) {
 </script>
 
 <style scoped>
-.head-card { padding: 8px 0 32px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.head-card { padding: 8px 0 32px; border-bottom: 1px solid rgba(74,52,40,0.10); }
 .greet {
   font-size: 34px; font-weight: 300;
   letter-spacing: -0.02em; margin-bottom: 8px;
-  color: #111; line-height: 1.15;
+  color: #2a1e17; line-height: 1.15;
 }
-.status-line { color: #8a8a8a; font-size: 13px; letter-spacing: 0.01em; }
+.status-line { color: #a89684; font-size: 13px; letter-spacing: 0.01em; }
 
 .q-title {
-  font-size: 12px; font-weight: 400; color: #8a8a8a;
+  font-size: 12px; font-weight: 400; color: #a89684;
   letter-spacing: 0.08em; text-transform: uppercase;
   margin-bottom: 16px;
 }
 
-.nutri-row { padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.nutri-row { padding: 14px 0; border-bottom: 1px solid rgba(74,52,40,0.08); }
 .nutri-row:last-of-type { border-bottom: none; }
-.nutri-name { font-size: 16px; font-weight: 400; color: #111; }
-.nutri-portion { color: #8a8a8a; font-weight: 400; margin-left: 4px; }
-.nutri-why { color: #666; font-size: 13px; margin-top: 4px; line-height: 1.5; }
-.nutri-summary { color: #666; font-size: 13px; margin-top: 14px; line-height: 1.6; font-style: italic; }
+.nutri-name { font-size: 16px; font-weight: 400; color: #2a1e17; }
+.nutri-portion { color: #a89684; font-weight: 400; margin-left: 4px; }
+.nutri-why { color: #5a4a3f; font-size: 13px; margin-top: 4px; line-height: 1.5; }
+.nutri-summary { color: #5a4a3f; font-size: 13px; margin-top: 14px; line-height: 1.6; font-style: italic; }
 .btn-ghost.slim { padding: 10px 0; font-size: 13px; margin-top: 16px; }
 
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
 .grid-item {
   padding: 24px 4px; text-align: center;
-  font-size: 13px; color: #111;
+  font-size: 13px; color: #2a1e17;
   cursor: pointer; transition: opacity .15s;
-  border-right: 1px solid rgba(0,0,0,0.06);
+  border-right: 1px solid rgba(74,52,40,0.08);
 }
 .grid-item:last-child { border-right: none; }
 .grid-item:active { opacity: 0.5; }
 .grid-item .ico { font-size: 20px; margin-bottom: 8px; display: block; opacity: 0.7; }
-.reminder { color: #444; font-size: 14px; line-height: 1.7; margin: 0; }
+.reminder { color: #5a4a3f; font-size: 14px; line-height: 1.7; margin: 0; }
 </style>

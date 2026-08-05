@@ -19,20 +19,20 @@ const tabs = [
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: 56px;
-  background: #ffffff;
-  border-top: 1px solid rgba(0,0,0,0.06);
+  background: #fbf7f0;
+  border-top: 1px solid rgba(74,52,40,0.10);
   display: flex; z-index: 100;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .tab {
   flex: 1;
   display: flex; align-items: center; justify-content: center;
-  color: #a8a8a8; text-decoration: none;
+  color: #a89684; text-decoration: none;
   font-size: 13px;
   letter-spacing: 0.06em;
   font-weight: 400;
   transition: color .15s;
 }
-.tab-active { color: #111; font-weight: 500; }
+.tab-active { color: #c46a3a; font-weight: 500; }
 .lbl { padding: 0 6px; }
 </style>
