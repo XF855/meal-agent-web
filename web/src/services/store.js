@@ -27,6 +27,11 @@ export function updateDiary(id, patch) {
   writeJSON(K_DIARY, list)
   return list
 }
+export function deleteDiary(id) {
+  const list = getDiary().filter(x => x.id !== id)
+  writeJSON(K_DIARY, list)
+  return list
+}
 
 export function getTodayContext() { return readJSON(K_TODAY, null) }
 export function setTodayContext(ctx) { writeJSON(K_TODAY, Object.assign({ savedAt: Date.now() }, ctx)) }

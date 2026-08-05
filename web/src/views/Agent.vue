@@ -56,18 +56,44 @@ onMounted(() => {
 function onPickFile(e) {
   const file = e.target.files && e.target.files[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => recognize(reader.result, file)
-  reader.readAsDataURL(file)
+  compressToDataUrl(file).then(dataUrl => recognize(dataUrl, file))
   e.target.value = ''
+}
+
+// 压缩到长边 1024px，转 JPEG，控制 body 大小；避免过大照片打爆 Serverless
+function compressToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1024
+        let { width, height } = img
+        if (width > height && width > MAX) { height = height * MAX / width; width = MAX }
+        else if (height > MAX) { width = width * MAX / height; height = MAX }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      img.onerror = reject
+      img.src = reader.result
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 
 async function recognize(dataUrl, file) {
   messages.value.push({ id: mid(), role: 'user', type: 'image', src: dataUrl })
   messages.value.push({ id: mid(), role: 'agent', type: 'text', text: '识别中，请稍候…' })
-  const r = await agent.recognizeMeal({ imageName: file.name, imageSize: file.size })
+  const r = await agent.recognizeMeal({
+    imageDataUrl: dataUrl,
+    imageName: file.name,
+    profile: getProfile()
+  })
   const last = messages.value[messages.value.length - 1]
-  if (r && r.ok) {
+  if (r && r.ok && r.data && Array.isArray(r.data.items) && r.data.items.length) {
     Object.assign(last, {
       role: 'agent', type: 'recognize',
       items: r.data.items, imageSrc: dataUrl

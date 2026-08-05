@@ -46,17 +46,31 @@ const MOCK = {
   chat: { reply: '（Mock 回复）已按你的要求调整。接入真实 Key 后会得到具体分析。' }
 }
 
-async function callClaude(userJson, schemaHint) {
+async function callClaude(userJson, schemaHint, opts) {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return null
+
+  // opts.imageDataUrl 存在时启用 vision，走多模态 content
+  const userContent = []
+  if (opts && opts.imageDataUrl) {
+    const m = String(opts.imageDataUrl).match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/)
+    if (m) {
+      userContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: m[1], data: m[2] }
+      })
+    }
+  }
+  userContent.push({
+    type: 'text',
+    text: `请严格返回 JSON，字段 schema：${schemaHint}\n\n上下文数据：\n${JSON.stringify(userJson)}`
+  })
+
   const body = {
     model: MODEL,
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `请严格返回 JSON，字段 schema：${schemaHint}\n\n上下文数据：\n${JSON.stringify(userJson)}`
-    }]
+    messages: [{ role: 'user', content: userContent }]
   }
   const headers = {
     'content-type': 'application/json',
@@ -96,7 +110,23 @@ export default async function handler(req, res) {
     const { action, payload } = body || {}
 
     if (action === 'recognizeMeal') {
-      // MVP：视觉识别接入前先返回占位（真实实现可换 Claude vision 或第三方 OCR）
+      const { imageDataUrl, ...ctx } = payload || {}
+      if (!imageDataUrl) {
+        return res.status(200).json({ ok: true, source: 'mock', data: MOCK.recognizeMeal })
+      }
+      try {
+        const schema = '{items:[{name,portion,method,confidence}], followUps:[string]}'
+        const data = await callClaude(
+          Object.assign({ task: '识别照片中的菜品，给出菜名、大致份量、烹饪方式、可信度 0-1，并列出 2-3 个需要用户确认的问题', ...ctx }),
+          schema,
+          { imageDataUrl }
+        )
+        if (data && Array.isArray(data.items) && data.items.length) {
+          return res.status(200).json({ ok: true, source: 'claude', data })
+        }
+      } catch (e) {
+        console.error('recognizeMeal claude error:', e.message)
+      }
       return res.status(200).json({ ok: true, source: 'mock', data: MOCK.recognizeMeal })
     }
 
@@ -140,4 +170,10 @@ function readBody(req) {
     })
     req.on('error', reject)
   })
+}
+
+// 允许上传较大 base64 图片，并给识别留够超时时间
+export const config = {
+  api: { bodyParser: { sizeLimit: '5mb' } },
+  maxDuration: 30
 }

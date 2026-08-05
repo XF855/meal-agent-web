@@ -61,7 +61,7 @@ const form = reactive({
   cuisines: [], spicy: 1, scenes: [], budget: '20~40 元',
   favorites: '', dislikes: ''
 })
-const cuisineOptions = ['川菜', '粤菜', '湘菜', '江浙', '西北', '东北', '日料', '韩料', '东南亚', '西餐', '快餐']
+const cuisineOptions = ['川菜', '粤菜', '湘菜', '本帮菜', '杭帮菜', '西北', '东北', '日料', '韩料', '东南亚', '西餐', '快餐']
 const spicyOptions = [
   { value: 0, label: '不吃辣' }, { value: 1, label: '微辣' },
   { value: 2, label: '中辣' }, { value: 3, label: '重辣' }
