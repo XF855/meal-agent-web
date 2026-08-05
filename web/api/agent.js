@@ -72,9 +72,121 @@ const MOCK = {
   chat: { reply: '（Mock 回复）已按你的要求调整。接入真实 Key 后会得到具体分析。' }
 }
 
-async function callClaude(userJson, schemaHint, opts) {
+// 各 action 的 JSON Schema：通过 Anthropic tool_use 强制模型按 schema 输出
+const SCHEMAS = {
+  recognizeMeal: {
+    name: 'submit_recognition',
+    description: '提交照片中识别到的菜品列表（只列你相当确定的项）',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              portion: { type: 'string' }
+            },
+            required: ['name', 'portion']
+          }
+        }
+      },
+      required: ['items']
+    }
+  },
+  recommend: {
+    name: 'submit_picks',
+    description: '提交三张推荐卡片：balanced/crave/easy',
+    input_schema: {
+      type: 'object',
+      properties: {
+        picks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              key:       { type: 'string', enum: ['balanced', 'crave', 'easy'] },
+              title:     { type: 'string' },
+              dish:      { type: 'string' },
+              reason:    { type: 'string' },
+              budget:    { type: 'string' },
+              time:      { type: 'string' },
+              allergens: { type: 'array', items: { type: 'string' } },
+              swaps:     { type: 'array', items: { type: 'string' } },
+              howto:     { type: 'string' }
+            },
+            required: ['key', 'title', 'dish', 'reason', 'budget', 'time', 'howto']
+          }
+        }
+      },
+      required: ['picks']
+    }
+  },
+  dailyNutrition: {
+    name: 'submit_nutrition',
+    description: '提交今日需要补充或减少的食物类别',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name:    { type: 'string' },
+              portion: { type: 'string' },
+              why:     { type: 'string' }
+            },
+            required: ['name', 'portion', 'why']
+          }
+        },
+        summary: { type: 'string' }
+      },
+      required: ['items']
+    }
+  },
+  party: {
+    name: 'submit_party_picks',
+    description: '提交三张聚餐方案：all/fun/easy',
+    input_schema: {
+      type: 'object',
+      properties: {
+        picks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              key:    { type: 'string', enum: ['all', 'fun', 'easy'] },
+              title:  { type: 'string' },
+              dish:   { type: 'string' },
+              reason: { type: 'string' },
+              budget: { type: 'string' },
+              notes:  { type: 'string' }
+            },
+            required: ['key', 'title', 'dish', 'reason', 'budget']
+          }
+        }
+      },
+      required: ['picks']
+    }
+  },
+  chat: {
+    name: 'submit_reply',
+    description: '提交对用户追问的回复',
+    input_schema: {
+      type: 'object',
+      properties: { reply: { type: 'string' } },
+      required: ['reply']
+    }
+  }
+}
+
+async function callClaude(userJson, schemaKey, opts) {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return null
+  const tool = SCHEMAS[schemaKey]
+  if (!tool) throw new Error('unknown_schema: ' + schemaKey)
 
   const userContent = []
   if (opts && opts.imageDataUrl) {
@@ -88,11 +200,7 @@ async function callClaude(userJson, schemaHint, opts) {
   }
   userContent.push({
     type: 'text',
-    text:
-      `你的整条回复必须是一个合法 JSON 对象，从 { 开始到 } 结束。\n` +
-      `禁止：任何解释、注释、Markdown、代码块围栏 \`\`\`json 或 \`\`\`、多余的逗号。\n` +
-      `字段 schema：${schemaHint}\n\n` +
-      `上下文数据：\n${JSON.stringify(userJson)}`
+    text: `请调用工具 ${tool.name} 提交你的结果。\n\n上下文数据：\n${JSON.stringify(userJson)}`
   })
 
   const body = {
@@ -100,6 +208,8 @@ async function callClaude(userJson, schemaHint, opts) {
     max_tokens: 1500,
     temperature: 0.4,
     system: SYSTEM_PROMPT,
+    tools: [tool],
+    tool_choice: { type: 'tool', name: tool.name },
     messages: [{ role: 'user', content: userContent }]
   }
   const headers = {
@@ -125,21 +235,29 @@ async function callClaude(userJson, schemaHint, opts) {
   } catch (e) {
     throw new Error('upstream_not_json (' + elapsed + 'ms) head=' + rawBody.slice(0, 200))
   }
-  const text = (data && data.content && data.content[0] && data.content[0].text) || ''
+
   const stop = data && data.stop_reason
-  console.log('[claude] model=%s elapsed=%dms stop=%s len=%d', MODEL, elapsed, stop, text.length)
+  const blocks = (data && data.content) || []
+  const toolUse = blocks.find(b => b && b.type === 'tool_use')
+  const textBlock = blocks.find(b => b && b.type === 'text')
+  const textLen = (textBlock && textBlock.text && textBlock.text.length) || 0
+  console.log('[claude] model=%s elapsed=%dms stop=%s tool=%s textLen=%d',
+    MODEL, elapsed, stop, !!toolUse, textLen)
+
+  if (toolUse && toolUse.input && typeof toolUse.input === 'object') {
+    return toolUse.input
+  }
+  // 没有 tool_use（少数代理不支持 tools 时）→ 退回到抽 JSON 逻辑
+  const text = (textBlock && textBlock.text) || ''
   const raw = extractJsonBlock(text)
-  if (!raw) throw new Error('claude_no_json (' + elapsed + 'ms, stop=' + stop + ') head=' + text.slice(0, 300))
+  if (!raw) throw new Error('claude_no_tool_no_json (' + elapsed + 'ms, stop=' + stop + ') head=' + text.slice(0, 300))
   try {
     return JSON.parse(raw)
   } catch (e1) {
-    // 尝试轻量修复：去掉尾随逗号、把中文引号替换成英文引号、去掉围栏
     const repaired = repairJson(raw)
-    try {
-      return JSON.parse(repaired)
-    } catch (e2) {
-      const snippet = raw.slice(0, 200)
-      throw new Error('claude_bad_json: ' + e2.message + ' | head=' + snippet)
+    try { return JSON.parse(repaired) }
+    catch (e2) {
+      throw new Error('claude_bad_json: ' + e2.message + ' | head=' + raw.slice(0, 200))
     }
   }
 }
@@ -158,9 +276,9 @@ function extractJsonBlock(text) {
 // 常见 LLM JSON 瑕疵：尾随逗号、中文引号、Python True/False/None
 function repairJson(s) {
   return s
-    .replace(/,\s*([}\]])/g, '$1')          // {"a":1,} → {"a":1}
-    .replace(/[“”]/g, '"')                    // 中文双引号
-    .replace(/[‘’]/g, "'")                    // 中文单引号
+    .replace(/,\s*([}\]])/g, '$1')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
     .replace(/\bTrue\b/g, 'true')
     .replace(/\bFalse\b/g, 'false')
     .replace(/\bNone\b/g, 'null')
@@ -181,13 +299,12 @@ export default async function handler(req, res) {
       const { imageDataUrl, ...ctx } = payload || {}
       if (!imageDataUrl) return res.status(200).json({ ok: true, source: 'mock', data: MOCK.recognizeMeal })
       try {
-        const schema = '{items:[{name,portion}]}'
         const data = await callClaude(
           Object.assign({
             task: '识别照片中的菜品，只输出菜名和大致份量。不要输出可信度、不要输出提问。若不确定，宁可少列几项。',
             ...ctx
           }),
-          schema,
+          'recognizeMeal',
           { imageDataUrl }
         )
         if (data && Array.isArray(data.items) && data.items.length) {
@@ -226,8 +343,7 @@ export default async function handler(req, res) {
         console.log('[recommend] skipping places (scene not restaurant/canteen or no location)')
       }
       try {
-        const data = await callClaude(enriched,
-          '{picks:[{key,title,dish,reason,budget,time,allergens:[string],swaps:[string],howto}]}')
+        const data = await callClaude(enriched, 'recommend')
         if (data && Array.isArray(data.picks)) {
           return res.status(200).json({
             ok: true, source: 'claude', data,
@@ -244,7 +360,7 @@ export default async function handler(req, res) {
           Object.assign({
             task: '基于用户画像和最近餐食，指出今天需要补充或减少哪几类营养/食物，2~4 条即可，每条给出份量和一句原因。避免使用医疗诊断口吻。'
           }, payload || {}),
-          '{items:[{name,portion,why}], summary:string}'
+          'dailyNutrition'
         )
         if (data && Array.isArray(data.items)) {
           return res.status(200).json({ ok: true, source: 'claude', data })
@@ -259,7 +375,7 @@ export default async function handler(req, res) {
           Object.assign({
             task: '为多人聚餐生成三选一。先合并所有参与者画像：找出共同可吃的菜系；把任一人的过敏和忌口作为硬性排除；预算取多人平均。'
           }, payload || {}),
-          '{picks:[{key,title,dish,reason,budget,notes}]}'
+          'party'
         )
         if (data && Array.isArray(data.picks)) {
           return res.status(200).json({ ok: true, source: 'claude', data })
@@ -270,7 +386,7 @@ export default async function handler(req, res) {
 
     if (action === 'chat') {
       try {
-        const data = await callClaude(payload || {}, '{reply:string}')
+        const data = await callClaude(payload || {}, 'chat')
         if (data && typeof data.reply === 'string') {
           return res.status(200).json({ ok: true, source: 'claude', data })
         }
