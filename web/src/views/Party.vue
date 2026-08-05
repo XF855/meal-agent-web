@@ -65,7 +65,7 @@
     <div class="card">
       <div class="section-label">聚餐场景</div>
       <div class="row">
-        <span v-for="o in ['餐厅','外卖凑单','食堂','家里做']" :key="o" class="tag"
+        <span v-for="o in ['餐厅','外卖凑单','家里做']" :key="o" class="tag"
               :class="{active: party.scene === o}" @click="party.scene = o">{{ o }}</span>
       </div>
       <div class="section-label">人均预算</div>

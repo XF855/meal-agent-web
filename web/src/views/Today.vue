@@ -70,13 +70,13 @@
               :class="{active: ctx.scene === o}" @click="set('scene', o)">{{ o }}</span>
       </div>
 
-      <div v-if="ctx.scene === '餐厅' || ctx.scene === '食堂'" class="place-row">
+      <div v-if="ctx.scene === '餐厅' || ctx.scene === '外卖'" class="place-row">
         <div v-if="location" class="place-ok">
-          已使用当前位置 · 推荐会结合附近好评餐厅
+          已使用当前位置 · 推荐会结合附近好评{{ ctx.scene === '外卖' ? '外卖商家' : '餐厅' }}
           <span class="place-link" @click="refreshLocation">重新定位</span>
         </div>
         <div v-else class="place-hint" @click="refreshLocation">
-          {{ locating ? '定位中…' : '开启定位，用附近好评餐厅优化推荐 →' }}
+          {{ locating ? '定位中…' : `开启定位，用附近好评${ctx.scene === '外卖' ? '外卖商家' : '餐厅'}优化推荐 →` }}
         </div>
       </div>
 
@@ -204,7 +204,7 @@ function leave(el, done) {
 const hungerOptions = ['不饿', '一般', '有点饿', '很饿']
 const moodOptions = ['开心', '普通', '疲惫', '低落', '兴奋']
 const timeOptions = ['10 分钟', '20 分钟', '30 分钟', '1 小时+']
-const sceneOptions = ['在家做', '外卖', '食堂', '餐厅']
+const sceneOptions = ['在家做', '外卖', '餐厅']
 const craveOptions = [
   '无所谓', '清淡', '辣', '重口', '热汤', '凉的', '甜的',
   '面食', '米饭', '肉', '海鲜', '蔬菜', '烧烤', '火锅', '轻食', '主食少一点'
