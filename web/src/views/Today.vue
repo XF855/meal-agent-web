@@ -66,8 +66,9 @@
 
       <div class="section-label">场景</div>
       <div class="row">
-        <span v-for="o in sceneOptions" :key="o" class="tag"
-              :class="{active: ctx.scene === o}" @click="set('scene', o)">{{ o }}</span>
+        <span v-for="o in sceneOptions" :key="o.value" class="tag"
+              :class="{active: ctx.scene === o.value}"
+              @click="set('scene', o.value)">{{ o.label }}</span>
       </div>
 
       <div v-if="ctx.scene === '餐厅'" class="place-row">
@@ -204,7 +205,10 @@ function leave(el, done) {
 const hungerOptions = ['不饿', '一般', '有点饿', '很饿']
 const moodOptions = ['开心', '普通', '疲惫', '低落', '兴奋']
 const timeOptions = ['10 分钟', '20 分钟', '30 分钟', '1 小时+']
-const sceneOptions = ['在家做', '餐厅']
+const sceneOptions = [
+  { value: '在家做', label: '在家做' },
+  { value: '餐厅',   label: '外卖/餐厅' }
+]
 const craveOptions = [
   '无所谓', '清淡', '辣', '重口', '热汤', '凉的', '甜的',
   '面食', '米饭', '肉', '海鲜', '蔬菜', '烧烤', '火锅', '轻食', '主食少一点'
