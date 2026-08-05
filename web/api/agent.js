@@ -88,14 +88,22 @@ async function callClaude(userJson, schemaHint, opts) {
   }
   userContent.push({
     type: 'text',
-    text: `请严格返回 JSON，字段 schema：${schemaHint}\n\n上下文数据：\n${JSON.stringify(userJson)}`
+    text:
+      `只输出一个合法 JSON 对象，不要任何解释、Markdown、代码块围栏。\n` +
+      `字段 schema：${schemaHint}\n\n` +
+      `上下文数据：\n${JSON.stringify(userJson)}`
   })
 
   const body = {
     model: MODEL,
-    max_tokens: 1200,
+    max_tokens: 1500,
+    temperature: 0.4,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userContent }]
+    messages: [
+      { role: 'user', content: userContent },
+      // 用 assistant prefill 强制 JSON 起手，规避模型说人话
+      { role: 'assistant', content: '{' }
+    ]
   }
   const headers = {
     'content-type': 'application/json',
@@ -112,10 +120,19 @@ async function callClaude(userJson, schemaHint, opts) {
     throw new Error('claude_http_' + res.status + ' ' + text.slice(0, 200))
   }
   const data = await res.json()
-  const text = (data && data.content && data.content[0] && data.content[0].text) || ''
-  const m = text.match(/\{[\s\S]*\}/)
-  if (!m) throw new Error('claude_no_json')
-  return JSON.parse(m[0])
+  let text = (data && data.content && data.content[0] && data.content[0].text) || ''
+  // 因为我们用 assistant prefill 塞了个开头的 '{'，把它补回来
+  if (text && !text.trimStart().startsWith('{')) text = '{' + text
+  // 抓第一个到最后一个花括号之间的最大 JSON 片段
+  const first = text.indexOf('{')
+  const last = text.lastIndexOf('}')
+  if (first < 0 || last <= first) throw new Error('claude_no_json')
+  const jsonStr = text.slice(first, last + 1)
+  try {
+    return JSON.parse(jsonStr)
+  } catch (e) {
+    throw new Error('claude_bad_json: ' + e.message)
+  }
 }
 
 export default async function handler(req, res) {
@@ -150,16 +167,27 @@ export default async function handler(req, res) {
     }
 
     if (action === 'recommend') {
-      const enriched = { ...(payload || {}) }
+      const enriched = slimRecommendPayload(payload || {})
       const scene = enriched.todayContext && enriched.todayContext.scene
-      const loc = enriched.location
+      const loc = (payload && payload.location) || null
       console.log('[recommend] scene=%s hasLoc=%s hasPlacesKey=%s',
         scene, !!(loc && loc.lat && loc.lng), !!process.env.GOOGLE_PLACES_API_KEY)
       if (loc && loc.lat && loc.lng && (scene === '餐厅' || scene === '食堂')) {
         try {
           const places = await fetchNearbyRestaurants(loc, scene)
           console.log('[recommend] nearby places returned:', places.length)
-          if (places && places.length) enriched.nearbyPlaces = places
+          if (places && places.length) {
+            // 只保留 Claude 真正会用的字段，减少 token
+            enriched.nearbyPlaces = places.slice(0, 6).map(p => ({
+              name: p.name,
+              primaryType: p.primaryType,
+              rating: p.rating,
+              userRatingCount: p.userRatingCount,
+              priceLevel: p.priceLevel,
+              distanceMeters: p.distanceMeters,
+              typicalDishes: p.typicalDishes
+            }))
+          }
         } catch (e) {
           console.error('places api error:', e.message)
         }
@@ -223,6 +251,59 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e && e.message || e) })
   }
+}
+
+// 精简 recommend payload：只保留 Claude 真正需要的字段，缩短 tokens 和响应时间
+function slimRecommendPayload(p) {
+  const out = {}
+  if (p.profile) {
+    const b = p.profile.basic || {}
+    const pr = p.profile.prefer || {}
+    out.profile = {
+      basic: {
+        birthYear: b.birthYear,
+        diet: b.diet,
+        allergies: b.allergies || [],
+        taboos: b.taboos || [],
+        healthPrefs: b.healthPrefs || []
+      },
+      prefer: {
+        cuisines: pr.cuisines || [],
+        spicy: pr.spicy,
+        budget: pr.budget,
+        favorites: pr.favorites,
+        dislikes: pr.dislikes,
+        scenes: pr.scenes || []
+      }
+    }
+  }
+  if (p.todayContext) {
+    const t = p.todayContext
+    out.todayContext = {
+      hunger: t.hunger, mood: t.mood, time: t.time,
+      scene: t.scene, crave: t.crave, personalNote: t.personalNote
+    }
+  }
+  if (Array.isArray(p.recentDiary)) {
+    // 只保留最近 5 顿的关键字段
+    out.recentDiary = p.recentDiary.slice(0, 5).map(d => ({
+      meal: d.meal,
+      items: (d.items || []).map(i => ({ name: i.name, portion: i.portion })),
+      deliveryStore: d.deliveryStore,
+      feedback: d.feedback ? { score: d.feedback.score, feel: d.feedback.feel } : undefined
+    }))
+  }
+  if (Array.isArray(p.recentStores)) {
+    out.recentStores = p.recentStores.slice(0, 4).map(s => ({
+      name: s.name, count: s.count, dishes: (s.dishes || []).slice(0, 4)
+    }))
+  }
+  if (p.ageMode) out.ageMode = p.ageMode
+  if (p.refineHint) out.refineHint = p.refineHint
+  if (Array.isArray(p.previousPicks)) {
+    out.previousPicks = p.previousPicks.slice(0, 3).map(x => ({ key: x.key, dish: x.dish }))
+  }
+  return out
 }
 
 // ---------------- Google Places (New) ----------------
@@ -348,5 +429,5 @@ function readBody(req) {
 
 export const config = {
   api: { bodyParser: { sizeLimit: '5mb' } },
-  maxDuration: 30
+  maxDuration: 60
 }
