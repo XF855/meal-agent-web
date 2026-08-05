@@ -1,9 +1,23 @@
 // Vercel Serverless Function: /api/agent
-// 环境变量：ANTHROPIC_API_KEY, ANTHROPIC_MODEL(可选)
+// 环境变量：
+//   ANTHROPIC_API_KEY   必填，你的密钥
+//   ANTHROPIC_MODEL     可选，默认 claude-opus-4-7
+//   ANTHROPIC_BASE_URL  可选，第三方代理（如 eazo）用这个替换官方地址
+//                       例：https://api.eazo.io  或  https://api.eazo.io/v1
+//   ANTHROPIC_AUTH_STYLE 可选，'x-api-key'（默认，官方）或 'bearer'（多数代理）
 // 未配置 KEY 时自动降级为 Mock，前端行为不受影响
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-7'
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
+const AUTH_STYLE = (process.env.ANTHROPIC_AUTH_STYLE || 'x-api-key').toLowerCase()
+
+function buildUrl() {
+  const base = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, '')
+  // 如果用户已经填了带 /v1 的路径，直接拼 /messages；否则补 /v1/messages
+  if (/\/v1$/.test(base)) return base + '/messages'
+  if (/\/messages$/.test(base)) return base
+  return base + '/v1/messages'
+}
+const ANTHROPIC_URL = buildUrl()
 
 const SYSTEM_PROMPT = `你是一个"饮食决策 Agent"。目标：在安全、营养、口味、情绪、便利之间，帮用户在 1 分钟内决定"下一餐吃什么"。
 
@@ -44,13 +58,18 @@ async function callClaude(userJson, schemaHint) {
       content: `请严格返回 JSON，字段 schema：${schemaHint}\n\n上下文数据：\n${JSON.stringify(userJson)}`
     }]
   }
+  const headers = {
+    'content-type': 'application/json',
+    'anthropic-version': '2023-06-01'
+  }
+  if (AUTH_STYLE === 'bearer') {
+    headers['authorization'] = 'Bearer ' + key
+  } else {
+    headers['x-api-key'] = key
+  }
   const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01'
-    },
+    headers,
     body: JSON.stringify(body)
   })
   if (!res.ok) {
