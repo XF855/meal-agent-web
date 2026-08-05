@@ -151,16 +151,20 @@ export default async function handler(req, res) {
 
     if (action === 'recommend') {
       const enriched = { ...(payload || {}) }
-      // 场景为餐厅/食堂 且用户授权了位置 → 拉附近餐厅
       const scene = enriched.todayContext && enriched.todayContext.scene
       const loc = enriched.location
+      console.log('[recommend] scene=%s hasLoc=%s hasPlacesKey=%s',
+        scene, !!(loc && loc.lat && loc.lng), !!process.env.GOOGLE_PLACES_API_KEY)
       if (loc && loc.lat && loc.lng && (scene === '餐厅' || scene === '食堂')) {
         try {
           const places = await fetchNearbyRestaurants(loc, scene)
+          console.log('[recommend] nearby places returned:', places.length)
           if (places && places.length) enriched.nearbyPlaces = places
         } catch (e) {
           console.error('places api error:', e.message)
         }
+      } else {
+        console.log('[recommend] skipping places (scene not restaurant/canteen or no location)')
       }
       try {
         const data = await callClaude(enriched,
