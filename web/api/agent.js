@@ -89,7 +89,8 @@ async function callClaude(userJson, schemaHint, opts) {
   userContent.push({
     type: 'text',
     text:
-      `只输出一个合法 JSON 对象，不要任何解释、Markdown、代码块围栏。\n` +
+      `你的整条回复必须是一个合法 JSON 对象，从 { 开始到 } 结束。\n` +
+      `禁止：任何解释、注释、Markdown、代码块围栏 \`\`\`json 或 \`\`\`、多余的逗号。\n` +
       `字段 schema：${schemaHint}\n\n` +
       `上下文数据：\n${JSON.stringify(userJson)}`
   })
@@ -99,11 +100,7 @@ async function callClaude(userJson, schemaHint, opts) {
     max_tokens: 1500,
     temperature: 0.4,
     system: SYSTEM_PROMPT,
-    messages: [
-      { role: 'user', content: userContent },
-      // 用 assistant prefill 强制 JSON 起手，规避模型说人话
-      { role: 'assistant', content: '{' }
-    ]
+    messages: [{ role: 'user', content: userContent }]
   }
   const headers = {
     'content-type': 'application/json',
@@ -120,19 +117,43 @@ async function callClaude(userJson, schemaHint, opts) {
     throw new Error('claude_http_' + res.status + ' ' + text.slice(0, 200))
   }
   const data = await res.json()
-  let text = (data && data.content && data.content[0] && data.content[0].text) || ''
-  // 因为我们用 assistant prefill 塞了个开头的 '{'，把它补回来
-  if (text && !text.trimStart().startsWith('{')) text = '{' + text
-  // 抓第一个到最后一个花括号之间的最大 JSON 片段
+  const text = (data && data.content && data.content[0] && data.content[0].text) || ''
+  const raw = extractJsonBlock(text)
+  if (!raw) throw new Error('claude_no_json')
+  try {
+    return JSON.parse(raw)
+  } catch (e1) {
+    // 尝试轻量修复：去掉尾随逗号、把中文引号替换成英文引号、去掉围栏
+    const repaired = repairJson(raw)
+    try {
+      return JSON.parse(repaired)
+    } catch (e2) {
+      const snippet = raw.slice(0, 200)
+      throw new Error('claude_bad_json: ' + e2.message + ' | head=' + snippet)
+    }
+  }
+}
+
+// 从模型输出里抓 JSON：优先识别 ```json ... ``` 围栏；否则取第一个 { 到最后一个 } 之间
+function extractJsonBlock(text) {
+  if (!text) return null
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  if (fence && fence[1]) return fence[1].trim()
   const first = text.indexOf('{')
   const last = text.lastIndexOf('}')
-  if (first < 0 || last <= first) throw new Error('claude_no_json')
-  const jsonStr = text.slice(first, last + 1)
-  try {
-    return JSON.parse(jsonStr)
-  } catch (e) {
-    throw new Error('claude_bad_json: ' + e.message)
-  }
+  if (first < 0 || last <= first) return null
+  return text.slice(first, last + 1)
+}
+
+// 常见 LLM JSON 瑕疵：尾随逗号、中文引号、Python True/False/None
+function repairJson(s) {
+  return s
+    .replace(/,\s*([}\]])/g, '$1')          // {"a":1,} → {"a":1}
+    .replace(/[“”]/g, '"')                    // 中文双引号
+    .replace(/[‘’]/g, "'")                    // 中文单引号
+    .replace(/\bTrue\b/g, 'true')
+    .replace(/\bFalse\b/g, 'false')
+    .replace(/\bNone\b/g, 'null')
 }
 
 export default async function handler(req, res) {
