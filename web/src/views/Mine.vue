@@ -107,7 +107,7 @@ function clear() {
 </script>
 
 <style scoped>
-.btn-ghost.slim { padding: 10px 0; font-size: 14px; margin-top: 10px; }
-.btn-ghost.danger-btn { color: #ff3b30; }
-code { background: #f2f2f7; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+.btn-ghost.slim { padding: 12px 0; font-size: 13px; margin-top: 12px; }
+.btn-ghost.danger-btn { color: #8a3d34; border-color: rgba(138,61,52,0.2); margin-top: 24px; }
+code { background: #f7f7f7; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #444; }
 </style>

@@ -1,79 +1,136 @@
-/* iOS 极简风格：白底、细分割线、系统字体、蓝色强调色 */
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* 极简：黑白灰 + 单一低饱和强调色 + 大留白 */
+:root {
+  --ink:      #111111;   /* 主文字 / 强调 */
+  --ink-2:    #444444;   /* 次级文字 */
+  --ink-3:    #8a8a8a;   /* 说明文字 */
+  --line:     rgba(0,0,0,0.08);
+  --paper:    #ffffff;   /* 背景 / 卡片 */
+  --paper-2:  #f7f7f7;   /* 输入框、次级面 */
+  --accent:   #2f4f4a;   /* 深墨绿：唯一强调色，低饱和 */
+  --danger:   #8a3d34;   /* 低饱和红棕：只用于危险动作 */
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 html, body, #app {
   margin: 0; padding: 0;
-  background: #f2f2f7;
-  color: #1c1c1e;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
-               "Helvetica Neue", "Segoe UI", sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family:
+    "SF Pro Display", -apple-system, BlinkMacSystemFont,
+    "PingFang SC", "Noto Serif SC", "Songti SC", serif;
   font-size: 15px;
-  line-height: 1.4;
+  line-height: 1.55;
+  letter-spacing: 0.005em;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "kern";
 }
-input, button, textarea { font-family: inherit; }
+input, button, textarea { font-family: inherit; color: inherit; }
 
-/* 卡片：白面 + 极细影 */
+/* 卡片：无阴影，靠留白与细分割线区隔 */
 .card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  padding: 24px 0 28px;
+  margin: 0;
 }
+.card:last-of-type { border-bottom: none; }
 
+/* 页面容器（App.vue 已给 .page 加 padding，这里作为兜底） */
+.page { padding: 32px 24px 120px !important; }
+
+/* 排版：细字大标题 + 弱色副标 */
 .title {
-  font-size: 22px; font-weight: 700; letter-spacing: -0.4px;
-  margin: 0 0 6px 0; color: #000;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 6px 0;
+  line-height: 1.25;
 }
-.subtitle { color: #8e8e93; font-size: 13px; margin-bottom: 10px; }
+.subtitle {
+  color: var(--ink-3);
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0 0 20px 0;
+  line-height: 1.6;
+}
 .section-label {
-  color: #6d6d72; font-size: 12px; font-weight: 500;
-  margin: 14px 0 6px; text-transform: none;
-  letter-spacing: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 20px 0 10px;
 }
 
-/* 按钮 */
+/* 按钮：主按钮墨色实心，次要按钮描边 */
 .btn-primary, .btn-ghost {
   display: block; width: 100%;
-  border-radius: 12px; padding: 13px 0;
-  text-align: center; font-size: 16px; font-weight: 600;
-  border: none; cursor: pointer;
-  transition: opacity .15s, background .15s;
+  border-radius: 999px;
+  padding: 14px 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  transition: opacity .15s, background .15s, color .15s;
 }
-.btn-primary { background: #007aff; color: #fff; }
-.btn-primary:active { opacity: 0.82; }
-.btn-ghost {
-  background: #ffffff; color: #007aff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-.btn-ghost:active { background: #f2f2f7; }
-.btn-primary + .btn-ghost, .btn-ghost + .btn-primary,
-.btn-primary + .btn-primary, .btn-ghost + .btn-ghost { margin-top: 10px; }
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-primary:active { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn-ghost:active { background: var(--paper-2); }
+.btn-primary + .btn-ghost,
+.btn-ghost + .btn-primary,
+.btn-primary + .btn-primary,
+.btn-ghost + .btn-ghost { margin-top: 12px; }
 
-/* 标签（选项） */
-.row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+/* 标签（可点选） */
+.row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .tag {
   display: inline-block;
-  padding: 6px 12px; border-radius: 16px;
-  background: #f2f2f7; color: #3c3c43;
-  font-size: 13px; cursor: pointer;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
   user-select: none;
-  transition: background .1s, color .1s;
+  transition: background .1s, color .1s, border-color .1s;
 }
-.tag.active { background: #007aff; color: #fff; }
+.tag.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
 
-/* 输入框 */
+/* 输入 */
 .input, .textarea {
   width: 100%;
-  background: #f2f2f7; border: none;
-  border-radius: 10px; padding: 11px 14px;
-  font-size: 15px; outline: none;
-  color: #1c1c1e;
+  background: var(--paper-2);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+  outline: none;
+  color: var(--ink);
+  transition: background .15s;
 }
-.textarea { min-height: 66px; resize: vertical; line-height: 1.5; }
-.input:focus, .textarea:focus { background: #e9e9ee; }
+.input::placeholder, .textarea::placeholder { color: var(--ink-3); }
+.textarea { min-height: 76px; resize: vertical; line-height: 1.6; }
+.input:focus, .textarea:focus { background: #f0f0f0; }
 
 /* 分割线 */
-.hr { height: 1px; background: rgba(60,60,67,0.14); margin: 12px 0; }
+.hr { height: 1px; background: var(--line); margin: 20px 0; border: none; }
 
-/* 危险色 */
-.danger { color: #ff3b30 !important; }
+/* 危险色（保守使用） */
+.danger { color: var(--danger) !important; }
+
+/* 通用文字重量类，便于个别地方按需覆盖 */
+.serif-num { font-variant-numeric: tabular-nums; }

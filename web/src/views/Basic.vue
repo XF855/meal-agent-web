@@ -116,13 +116,13 @@ function next() {
 </script>
 
 <style scoped>
-.progress { height: 3px; background: #e5e5ea; border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
-.progress-inner { height: 100%; background: #007aff; }
-.add-row { display: flex; gap: 8px; margin-top: 10px; }
+.progress { height: 1px; background: rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 20px; }
+.progress-inner { height: 100%; background: #111; }
+.add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row .input { flex: 1; }
 .add-btn {
-  background: #f2f2f7; border: none;
-  color: #007aff; font-size: 14px;
-  padding: 0 16px; border-radius: 10px; cursor: pointer;
+  background: transparent; border: 1px solid rgba(0,0,0,0.08);
+  color: #111; font-size: 13px;
+  padding: 0 16px; border-radius: 999px; cursor: pointer;
 }
 </style>

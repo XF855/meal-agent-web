@@ -66,11 +66,23 @@ onMounted(() => load(null))
 </script>
 
 <style scoped>
-.pick-card { cursor: pointer; }
-.pick-title { color: #007aff; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.pick-dish { font-size: 18px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.2px; }
-.pick-reason { color: #3c3c43; font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
-.danger-tag { background: #ffece9; color: #ff3b30; }
-.refine .q-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #3c3c43; }
-.btn-ghost.slim { padding: 10px 0; font-size: 14px; }
+.pick-card { cursor: pointer; padding: 32px 0; }
+.pick-title {
+  color: #8a8a8a; font-size: 12px;
+  font-weight: 400; letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.pick-dish {
+  font-size: 24px; font-weight: 300; color: #111;
+  letter-spacing: -0.01em; line-height: 1.3;
+  margin-bottom: 16px;
+}
+.pick-reason { color: #444; font-size: 14px; line-height: 1.7; margin: 16px 0 0; }
+.danger-tag { border-color: rgba(0,0,0,0.08); color: #8a3d34; }
+.refine .q-title {
+  font-size: 12px; color: #8a8a8a;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 16px; font-weight: 400;
+}
+.btn-ghost.slim { padding: 12px 0; font-size: 14px; }
 </style>

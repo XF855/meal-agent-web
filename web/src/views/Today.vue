@@ -243,27 +243,37 @@ function compressToDataUrl(file) {
 </script>
 
 <style scoped>
-.head-card { padding-top: 18px; padding-bottom: 16px; }
-.greet { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 4px; }
-.status-line { color: #8e8e93; font-size: 13px; }
-.q-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-
-.nutri-row { padding: 8px 0; border-bottom: 0.5px solid rgba(60,60,67,0.14); }
-.nutri-row:last-of-type { border-bottom: none; }
-.nutri-name { font-size: 15px; font-weight: 500; }
-.nutri-portion { color: #8e8e93; font-weight: 400; }
-.nutri-why { color: #6d6d72; font-size: 13px; margin-top: 2px; line-height: 1.4; }
-.nutri-summary { color: #6d6d72; font-size: 13px; margin-top: 8px; line-height: 1.5; }
-.btn-ghost.slim { padding: 8px 0; font-size: 14px; margin-top: 12px; }
-
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.grid-item {
-  background: #fafafa; border-radius: 12px; padding: 16px 8px;
-  text-align: center; font-size: 13px; color: #1c1c1e;
-  cursor: pointer; transition: background .15s;
-  border: 0.5px solid rgba(60,60,67,0.1);
+.head-card { padding: 8px 0 32px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.greet {
+  font-size: 34px; font-weight: 300;
+  letter-spacing: -0.02em; margin-bottom: 8px;
+  color: #111; line-height: 1.15;
 }
-.grid-item:active { background: #f0f0f5; }
-.grid-item .ico { font-size: 24px; margin-bottom: 4px; }
-.reminder { color: #3c3c43; font-size: 14px; line-height: 1.6; margin: 0; }
+.status-line { color: #8a8a8a; font-size: 13px; letter-spacing: 0.01em; }
+
+.q-title {
+  font-size: 12px; font-weight: 400; color: #8a8a8a;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.nutri-row { padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.nutri-row:last-of-type { border-bottom: none; }
+.nutri-name { font-size: 16px; font-weight: 400; color: #111; }
+.nutri-portion { color: #8a8a8a; font-weight: 400; margin-left: 4px; }
+.nutri-why { color: #666; font-size: 13px; margin-top: 4px; line-height: 1.5; }
+.nutri-summary { color: #666; font-size: 13px; margin-top: 14px; line-height: 1.6; font-style: italic; }
+.btn-ghost.slim { padding: 10px 0; font-size: 13px; margin-top: 16px; }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+.grid-item {
+  padding: 24px 4px; text-align: center;
+  font-size: 13px; color: #111;
+  cursor: pointer; transition: opacity .15s;
+  border-right: 1px solid rgba(0,0,0,0.06);
+}
+.grid-item:last-child { border-right: none; }
+.grid-item:active { opacity: 0.5; }
+.grid-item .ico { font-size: 20px; margin-bottom: 8px; display: block; opacity: 0.7; }
+.reminder { color: #444; font-size: 14px; line-height: 1.7; margin: 0; }
 </style>

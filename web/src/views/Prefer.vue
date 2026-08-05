@@ -88,6 +88,6 @@ function finish() {
 </script>
 
 <style scoped>
-.progress { height: 3px; background: #e5e5ea; border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
-.progress-inner { height: 100%; background: #007aff; }
+.progress { height: 1px; background: rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 20px; }
+.progress-inner { height: 100%; background: #111; }
 </style>

@@ -1,16 +1,20 @@
 <template>
-  <div>
+  <div class="brand">
     <div class="hero">
       <div class="hero-title">吃得开心</div>
       <div class="hero-title">吃得放心</div>
       <div class="hero-title">吃得省心</div>
-      <div class="hero-sub">Enjoy Every Bite. Trust Every Choice. Skip the Stress.</div>
+      <div class="hero-sub">Enjoy Every Bite.</div>
+      <div class="hero-sub">Trust Every Choice.</div>
+      <div class="hero-sub">Skip the Stress.</div>
     </div>
 
     <p class="intro">先了解你的口味，再帮你决定下一餐。</p>
 
-    <button class="btn-primary" @click="$router.push('/onboarding/basic')">开始建立饮食卡片</button>
-    <button class="btn-ghost" @click="skip">先体验一下</button>
+    <div class="actions">
+      <button class="btn-primary" @click="$router.push('/onboarding/basic')">开始建立饮食卡片</button>
+      <button class="btn-ghost" @click="skip">先体验一下</button>
+    </div>
   </div>
 </template>
 
@@ -26,8 +30,21 @@ function skip() {
 </script>
 
 <style scoped>
-.hero { padding: 60px 0 30px; text-align: center; }
-.hero-title { font-size: 38px; font-weight: 700; color: #007aff; line-height: 1.2; letter-spacing: -0.6px; }
-.hero-sub { margin-top: 18px; color: #8e8e93; font-size: 12px; }
-.intro { text-align: center; color: #3c3c43; font-size: 15px; line-height: 1.6; padding: 20px 16px 40px; }
+.brand { min-height: 100vh; display: flex; flex-direction: column; padding-top: 40px; }
+.hero { text-align: left; margin-bottom: 40px; }
+.hero-title {
+  font-size: 44px; font-weight: 300;
+  color: #111; line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.hero-sub {
+  color: #8a8a8a; font-size: 13px; line-height: 1.7;
+  margin-top: 4px; letter-spacing: 0.02em;
+}
+.hero-sub:first-of-type { margin-top: 20px; }
+.intro {
+  color: #444; font-size: 16px; line-height: 1.7;
+  margin: 0 0 auto 0;
+}
+.actions { margin-top: 40px; }
 </style>

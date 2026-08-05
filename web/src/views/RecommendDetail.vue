@@ -90,12 +90,20 @@ function onPick() {
 </script>
 
 <style scoped>
-.pick-title { color: #ff7043; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.pick-dish { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-.pick-reason { color: #555; font-size: 14px; line-height: 1.6; margin: 0; }
+.pick-title {
+  color: #8a8a8a; font-size: 12px;
+  font-weight: 400; letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.pick-dish {
+  font-size: 26px; font-weight: 300; color: #111;
+  letter-spacing: -0.01em; line-height: 1.3;
+  margin-bottom: 16px;
+}
+.pick-reason { color: #444; font-size: 14px; line-height: 1.7; margin: 0; }
 .reply {
-  margin-top: 10px; padding: 10px 12px;
-  background: #f7f7f8; border-radius: 10px;
-  color: #333; font-size: 13px; line-height: 1.6;
+  margin-top: 16px; padding: 16px 18px;
+  background: #f7f7f7; border-radius: 12px;
+  color: #333; font-size: 14px; line-height: 1.7;
 }
 </style>

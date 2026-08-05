@@ -177,25 +177,40 @@ async function generate() {
 </script>
 
 <style scoped>
-.head { display: flex; align-items: center; margin-bottom: 6px; gap: 8px; }
-.member-name { display: flex; align-items: center; gap: 8px; flex: 1; }
+.head { display: flex; align-items: center; margin-bottom: 10px; gap: 10px; }
+.member-name { display: flex; align-items: center; gap: 10px; flex: 1; }
 .badge {
-  background: #007aff; color: #fff; font-size: 11px;
-  padding: 2px 8px; border-radius: 8px;
+  background: transparent; color: #111;
+  border: 1px solid rgba(0,0,0,0.08);
+  font-size: 11px; letter-spacing: 0.06em;
+  padding: 2px 10px; border-radius: 999px;
 }
-.input.inline { flex: 1; padding: 8px 10px; font-size: 14px; background: transparent; }
-.input.inline:focus { background: #f2f2f7; }
-.act { background: transparent; border: 1px solid #e5e5ea; color: #666; padding: 4px 10px; font-size: 13px; border-radius: 8px; cursor: pointer; }
-.act.danger { color: #ff3b30; border-color: #ffd0cd; }
-.add-row { display: flex; gap: 8px; margin-top: 8px; }
+.input.inline { flex: 1; padding: 10px 12px; font-size: 15px; background: transparent; }
+.input.inline:focus { background: #f7f7f7; }
+.act {
+  background: transparent; border: 1px solid rgba(0,0,0,0.08);
+  color: #666; padding: 4px 12px; font-size: 12px;
+  border-radius: 999px; cursor: pointer;
+}
+.act.danger { color: #8a3d34; border-color: rgba(138,61,52,0.2); }
+.add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row .input { flex: 1; }
 .add-btn {
-  background: #f2f2f7; border: none; color: #007aff;
-  font-size: 14px; padding: 0 14px; border-radius: 10px; cursor: pointer;
+  background: transparent; border: 1px solid rgba(0,0,0,0.08);
+  color: #111; font-size: 13px;
+  padding: 0 18px; border-radius: 999px; cursor: pointer;
 }
-.pick-title { color: #007aff; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.pick-dish { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-.pick-reason { color: #3c3c43; font-size: 14px; line-height: 1.5; margin: 6px 0; }
-.pick-notes { color: #6d6d72; font-size: 13px; margin: 6px 0 0; }
-.danger-tag { background: #ffece9; color: #ff3b30; }
+.pick-title {
+  color: #8a8a8a; font-size: 12px;
+  font-weight: 400; letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.pick-dish {
+  font-size: 24px; font-weight: 300; color: #111;
+  letter-spacing: -0.01em; line-height: 1.3;
+  margin-bottom: 16px;
+}
+.pick-reason { color: #444; font-size: 14px; line-height: 1.7; margin: 10px 0; }
+.pick-notes { color: #8a8a8a; font-size: 13px; margin: 10px 0 0; font-style: italic; }
+.danger-tag { border-color: rgba(0,0,0,0.08); color: #8a3d34; }
 </style>

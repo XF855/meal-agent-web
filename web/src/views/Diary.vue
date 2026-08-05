@@ -141,22 +141,29 @@ function saveEdit() {
 </script>
 
 <style scoped>
-.day-title { color: #888; font-size: 12px; margin: 8px 4px; }
+.day-title {
+  color: #8a8a8a; font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  margin: 32px 0 12px;
+}
 .head {
-  display: flex; align-items: center; margin-bottom: 6px; gap: 8px;
+  display: flex; align-items: center; margin-bottom: 10px; gap: 10px;
 }
-.meal { color: #ff7043; font-weight: 600; font-size: 13px; }
-.time { color: #999; font-size: 12px; }
-.actions { margin-left: auto; display: flex; gap: 4px; }
+.meal {
+  color: #111; font-weight: 500; font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.time { color: #8a8a8a; font-size: 12px; }
+.actions { margin-left: auto; display: flex; gap: 6px; }
 .act {
-  background: transparent; border: 1px solid #e0e0e2;
-  color: #666; padding: 3px 10px; font-size: 12px;
-  border-radius: 12px; cursor: pointer;
+  background: transparent; border: 1px solid rgba(0,0,0,0.08);
+  color: #666; padding: 4px 12px; font-size: 12px;
+  border-radius: 999px; cursor: pointer;
 }
-.act.danger { color: #ff5252; border-color: #ffd0d0; }
-.preview { width: 100%; border-radius: 8px; margin: 6px 0; }
-.line { color: #333; font-size: 13px; line-height: 1.6; }
-.fb { color: #888; font-size: 12px; margin-top: 6px; }
+.act.danger { color: #8a3d34; border-color: rgba(138,61,52,0.2); }
+.preview { width: 100%; border-radius: 4px; margin: 10px 0; }
+.line { color: #333; font-size: 14px; line-height: 1.8; }
+.fb { color: #8a8a8a; font-size: 12px; margin-top: 10px; font-style: italic; }
 
 .mask {
   position: fixed; inset: 0; z-index: 200;
@@ -165,26 +172,28 @@ function saveEdit() {
 }
 .sheet {
   width: 100%; background: #fff;
-  border-radius: 16px 16px 0 0;
-  padding: 16px;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
   max-height: 84vh; overflow-y: auto;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
 }
 .sheet-head {
   display: flex; justify-content: space-between; align-items: center;
-  font-size: 16px; font-weight: 600; margin-bottom: 8px;
+  font-size: 18px; font-weight: 400; margin-bottom: 16px;
+  letter-spacing: -0.01em;
 }
 .close {
   border: none; background: transparent;
   font-size: 24px; line-height: 1; color: #888; cursor: pointer;
 }
 .item-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 0; border-bottom: 1px solid #f2f2f4;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
 }
-.input.inline { flex: 1; padding: 8px 10px; font-size: 13px; }
+.input.inline { flex: 1; padding: 8px 10px; font-size: 14px; background: transparent; }
+.input.inline:focus { background: #f7f7f7; }
 .btn-ghost.small {
-  width: auto; padding: 6px 14px; font-size: 13px;
-  margin: 8px 0 4px;
+  width: auto; padding: 8px 16px; font-size: 13px;
+  margin: 10px 0 4px;
 }
 </style>
