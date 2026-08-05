@@ -109,17 +109,27 @@ async function callClaude(userJson, schemaHint, opts) {
   if (AUTH_STYLE === 'bearer') headers['authorization'] = 'Bearer ' + key
   else headers['x-api-key'] = key
 
+  const t0 = Date.now()
   const res = await fetch(ANTHROPIC_URL, {
     method: 'POST', headers, body: JSON.stringify(body)
   })
+  const elapsed = Date.now() - t0
   if (!res.ok) {
     const text = await res.text().catch(() => '')
-    throw new Error('claude_http_' + res.status + ' ' + text.slice(0, 200))
+    throw new Error('claude_http_' + res.status + ' (' + elapsed + 'ms) ' + text.slice(0, 200))
   }
-  const data = await res.json()
+  const rawBody = await res.text()
+  let data
+  try {
+    data = JSON.parse(rawBody)
+  } catch (e) {
+    throw new Error('upstream_not_json (' + elapsed + 'ms) head=' + rawBody.slice(0, 200))
+  }
   const text = (data && data.content && data.content[0] && data.content[0].text) || ''
+  const stop = data && data.stop_reason
+  console.log('[claude] model=%s elapsed=%dms stop=%s len=%d', MODEL, elapsed, stop, text.length)
   const raw = extractJsonBlock(text)
-  if (!raw) throw new Error('claude_no_json')
+  if (!raw) throw new Error('claude_no_json (' + elapsed + 'ms, stop=' + stop + ') head=' + text.slice(0, 300))
   try {
     return JSON.parse(raw)
   } catch (e1) {
