@@ -10,9 +10,31 @@
       <div class="q-title">今日营养建议</div>
       <div v-if="nutritionLoading" class="subtitle">正在结合你最近几天的饮食生成建议…</div>
       <div v-else-if="nutrition && nutrition.items && nutrition.items.length">
-        <div v-for="n in nutrition.items" :key="n.name" class="nutri-row">
-          <div class="nutri-name">{{ n.name }} <span class="nutri-portion">· {{ n.portion }}</span></div>
-          <div class="nutri-why">{{ n.why }}</div>
+        <div
+          v-for="(n, idx) in nutrition.items"
+          :key="n.name"
+          class="nutri-row"
+          :class="{ open: expanded === idx }"
+          @click="toggleExpand(idx)"
+        >
+          <div class="nutri-head">
+            <div class="nutri-name">
+              {{ n.name }} <span class="nutri-portion">· {{ n.portion }}</span>
+            </div>
+            <span class="chev" :class="{ up: expanded === idx }">›</span>
+          </div>
+          <transition
+            name="accordion"
+            @before-enter="beforeEnter"
+            @enter="enter"
+            @after-enter="afterEnter"
+            @before-leave="beforeLeave"
+            @leave="leave"
+          >
+            <div v-if="expanded === idx" class="nutri-detail">
+              <div class="nutri-why">{{ n.why }}</div>
+            </div>
+          </transition>
         </div>
         <div class="nutri-summary" v-if="nutrition.summary">{{ nutrition.summary }}</div>
       </div>
@@ -112,6 +134,50 @@ const capturing = ref(false)
 
 const nutrition = ref(null)
 const nutritionLoading = ref(false)
+const expanded = ref(-1)   // 当前展开的营养项索引；-1 表示全部收起
+
+function toggleExpand(idx) {
+  expanded.value = expanded.value === idx ? -1 : idx
+}
+
+// Vue transition JS hooks：把 auto height 展开动画化
+function beforeEnter(el) {
+  el.style.height = '0'
+  el.style.opacity = '0'
+}
+function enter(el, done) {
+  const target = el.scrollHeight
+  requestAnimationFrame(() => {
+    el.style.transition = 'height 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease'
+    el.style.height = target + 'px'
+    el.style.opacity = '1'
+    el.addEventListener('transitionend', function handler(e) {
+      if (e.propertyName !== 'height') return
+      el.removeEventListener('transitionend', handler)
+      done()
+    })
+  })
+}
+function afterEnter(el) {
+  el.style.height = ''
+  el.style.transition = ''
+}
+function beforeLeave(el) {
+  el.style.height = el.scrollHeight + 'px'
+  el.style.opacity = '1'
+}
+function leave(el, done) {
+  requestAnimationFrame(() => {
+    el.style.transition = 'height 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease'
+    el.style.height = '0'
+    el.style.opacity = '0'
+    el.addEventListener('transitionend', function handler(e) {
+      if (e.propertyName !== 'height') return
+      el.removeEventListener('transitionend', handler)
+      done()
+    })
+  })
+}
 
 const hungerOptions = ['不饿', '一般', '有点饿', '很饿']
 const moodOptions = ['开心', '普通', '疲惫', '低落', '兴奋']
@@ -257,12 +323,39 @@ function compressToDataUrl(file) {
   margin-bottom: 16px;
 }
 
-.nutri-row { padding: 14px 0; border-bottom: 1px solid rgba(74,52,40,0.08); }
+.nutri-row {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(74,52,40,0.08);
+  cursor: pointer;
+  transition: background 200ms ease;
+}
 .nutri-row:last-of-type { border-bottom: none; }
+.nutri-row:active { background: rgba(74,52,40,0.03); }
+.nutri-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
 .nutri-name { font-size: 16px; font-weight: 400; color: #2a1e17; }
 .nutri-portion { color: #a89684; font-weight: 400; margin-left: 4px; }
-.nutri-why { color: #5a4a3f; font-size: 13px; margin-top: 4px; line-height: 1.5; }
-.nutri-summary { color: #5a4a3f; font-size: 13px; margin-top: 14px; line-height: 1.6; font-style: italic; }
+.chev {
+  color: #a89684; font-size: 22px; line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease;
+  display: inline-block;
+}
+.chev.up { transform: rotate(-90deg); color: #c46a3a; }
+.nutri-detail {
+  overflow: hidden;
+  will-change: height, opacity;
+}
+.nutri-why {
+  color: #5a4a3f; font-size: 13px;
+  padding-top: 8px; line-height: 1.6;
+}
+.nutri-summary {
+  color: #5a4a3f; font-size: 13px;
+  margin-top: 20px; line-height: 1.6; font-style: italic;
+}
 .btn-ghost.slim { padding: 10px 0; font-size: 13px; margin-top: 16px; }
 
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }

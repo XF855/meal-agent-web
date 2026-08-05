@@ -379,20 +379,51 @@ localStorage 天然不跨设备。想跨设备只需改 `store.js` 的 5 个 get
 
 ---
 
-## 九、UI 风格
+## 九、UI 风格与交互
 
-全局样式统一为**iOS 系统风格**（见 `src/styles/global.css`）：
+### 9.1 视觉语言
 
-- 系统字体栈：`-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", ...`
-- 卡片：白面 `#ffffff` + 12px 圆角，去除粗阴影
-- 强调色：**system blue `#007aff`**（原橙色 `#ff7043` 已弃用）
-- 底色：`#f2f2f7`（iOS 系统灰）
-- TabBar：毛玻璃 `backdrop-filter: blur(20px)`
-- 分割线：0.5px `rgba(60,60,67,0.14)`
-- 危险色：`#ff3b30`
-- 输入框：`.input` / `.textarea` 用 `#f2f2f7` 灰底、无边框、focus 时 `#e9e9ee`
+极简 · 温暖：奶油底 + 咖啡色文字 + 陶土色强调色（见 `src/styles/global.css`）。
+所有颜色通过 CSS 变量集中管理，改主题只需改 `:root` 里的 8 个变量。
 
-想改主题色，全局搜 `#007aff` 替换即可（约 15 处）。
+| 变量 | 值 | 用途 |
+| --- | --- | --- |
+| `--ink` | `#2a1e17` 深咖 | 主文字、主按钮底 |
+| `--ink-2` | `#5a4a3f` 中咖 | 次级文字、按钮文字 |
+| `--ink-3` | `#a89684` 浅咖 | 说明文字、占位符 |
+| `--paper` | `#fbf7f0` 奶油 | 页面底色 |
+| `--paper-2` | `#f3ecdf` 米黄 | 输入框、次级面 |
+| `--accent` | `#c46a3a` 陶土橙 | 主按钮、active 图标、pick title |
+| `--accent-soft` | `#f0d9c5` 陶土浅 | active tag 底色 |
+| `--danger` | `#a04a3a` 红棕 | 只用于删除/清空 |
+| `--line` | `rgba(74,52,40,0.10)` | 极细分割线 |
+
+- 字体栈：`"SF Pro Display", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Serif SC", "Songti SC"`——中文优先衬线
+- 卡片：**无阴影、无圆角背景**，靠 24~32px 垂直留白 + 1px 底部分割线区隔
+- 按钮：全部 pill 形（`border-radius: 999px`）；主按钮陶土实心，次要按钮透明描边
+- Tag：默认描边胶囊，active 时填 `--accent-soft`
+- TabBar：奶油底 + 极细顶边，纯文字 + 陶土 active
+
+### 9.2 动效
+
+`App.vue` 顶层包裹了 `<transition>`，`Today.vue` 的营养卡使用手风琴 JS hooks。
+
+**页面切换**
+- 一级 Tab（今日 ⇄ 聚餐 ⇄ 日记 ⇄ 我的）之间：**横向滑动 + 淡入淡出**，方向按 Tab 顺序决定（右去左从右滑入）
+- 进出 onboarding / 详情页 / 反馈页：**淡入 + 微上浮 6px**
+- 缓动全部用 `cubic-bezier(0.22, 1, 0.36, 1)`（"soft-out"）；240~300ms
+- `mode="out-in"` 保证同一时刻只有一个页面在 DOM 里，避免闪烁
+
+**营养卡手风琴**
+- 默认全部收起，只显示"种类 · 份量"
+- 点击某一项 → 展开该项的"why 原因"；同时其他已展开项自动收起
+- 高度动画走 `<transition>` 的 `@enter` / `@leave` JS hooks：从 0 → `scrollHeight` → auto，配 opacity
+- Chevron 图标（›）通过 `transform: rotate()` 联动，形成"箭头指向已展开项"的视觉反馈
+- 手指按下时 row 底色微凹陷 `rgba(74,52,40,0.03)`
+
+**改动指南**
+- 想加/换页面过渡：改 `App.vue` 里的 `TAB_PATHS` 与 CSS `.page-*-enter` / `.page-*-leave` 规则
+- 想让其他卡片也走手风琴：把 `Today.vue` 里的 `expanded / toggleExpand / beforeEnter / enter / afterEnter / beforeLeave / leave` 五个 hook 复制过去，用 `<transition name="accordion" @before-enter=... />` 包裹展开区域即可
 
 ---
 
