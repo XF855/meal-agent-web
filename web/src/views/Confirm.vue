@@ -1,22 +1,49 @@
 <template>
   <div>
-    <p class="subtitle">只有你确认后的数据才会写入日记与推荐系统。</p>
+    <h1 class="title">确认这一餐</h1>
+    <p class="subtitle">识别只是初步猜测，请选出正确的项，或自己填写。</p>
 
     <div class="card" v-if="imageSrc">
-      <img :src="imageSrc" style="width:100%; border-radius: 10px;" />
+      <img :src="imageSrc" style="width:100%; border-radius: 10px; display:block;" />
+    </div>
+
+    <div class="card" v-if="candidates.length">
+      <div class="section-label">Agent 猜到的菜品（勾选正确的）</div>
+      <div class="row">
+        <span v-for="c in candidates" :key="c.name" class="tag"
+              :class="{active: picked.includes(c.name)}"
+              @click="togglePick(c)">
+          {{ c.name }} · {{ c.portion || '一份' }}
+        </span>
+      </div>
+      <div class="hint" v-if="!picked.length">如果都不对，直接在下方自己填即可。</div>
     </div>
 
     <div class="card">
-      <div class="section-label">识别到的菜品</div>
+      <div class="section-label">这一餐实际吃了</div>
       <div v-for="(it, idx) in items" :key="idx" class="item-row">
         <input class="input inline" placeholder="菜名" v-model="it.name"/>
         <input class="input inline" placeholder="份量" v-model="it.portion"/>
-        <button class="del" @click="items.splice(idx, 1)">删除</button>
+        <button class="act danger" @click="items.splice(idx, 1)">×</button>
       </div>
-      <button class="btn-ghost" @click="addOne">＋ 加一个漏识别的食物</button>
+      <button class="btn-ghost" @click="addOne">＋ 加一项</button>
     </div>
 
-    <button class="btn-primary" @click="confirm">确认，并让 Agent 推荐下一餐</button>
+    <div class="card">
+      <div class="section-label">餐次</div>
+      <div class="row">
+        <span v-for="m in mealOptions" :key="m" class="tag"
+              :class="{active: meal === m}" @click="meal = m">{{ m }}</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">这顿是外卖吗（可选，填了以后 Agent 会记住这家店）</div>
+      <input class="input" placeholder="例如：xx轻食 / 兰州拉面" v-model="deliveryStore"/>
+    </div>
+
+    <button class="btn-primary" @click="save">保存到日记，去看推荐</button>
+    <button class="btn-ghost" @click="saveOnly">只保存，不推荐</button>
   </div>
 </template>
 
@@ -26,18 +53,15 @@ import { useRouter } from 'vue-router'
 import { getPending, setPending, appendDiary } from '../services/store.js'
 
 const router = useRouter()
-const items = ref([])
+const candidates = ref([])           // Agent 识别出来的原始候选
+const picked = ref([])               // 用户勾选的菜名
+const items = ref([])                // 最终写入日记的菜品数组
 const imageSrc = ref('')
+const meal = ref('午餐')
+const deliveryStore = ref('')
 
-onMounted(() => {
-  const p = getPending('recognize') || {}
-  items.value = (p.items || []).map(x => ({ ...x }))
-  imageSrc.value = p.imageSrc || ''
-})
+const mealOptions = ['早餐', '午餐', '加餐', '晚餐', '夜宵']
 
-function addOne() {
-  items.value.push({ name: '', portion: '一份', method: '', confidence: 1 })
-}
 function guessMeal() {
   const h = new Date().getHours()
   if (h < 10) return '早餐'
@@ -46,11 +70,49 @@ function guessMeal() {
   if (h < 21) return '晚餐'
   return '夜宵'
 }
-function confirm() {
+
+onMounted(() => {
+  const p = getPending('recognize') || {}
+  candidates.value = (p.items || []).map(x => ({ name: x.name, portion: x.portion || '一份', method: x.method || '' }))
+  imageSrc.value = p.imageSrc || ''
+  meal.value = guessMeal()
+  // 默认不预选，让用户主动确认
+  items.value = [{ name: '', portion: '一份' }]
+})
+
+function togglePick(c) {
+  const idx = picked.value.indexOf(c.name)
+  if (idx >= 0) {
+    picked.value.splice(idx, 1)
+    // 从 items 移除
+    const j = items.value.findIndex(x => x.name === c.name)
+    if (j >= 0) items.value.splice(j, 1)
+  } else {
+    picked.value.push(c.name)
+    // 如果 items 里第一行是空的，用它；否则追加
+    if (items.value.length && !items.value[0].name.trim()) items.value[0] = { ...c }
+    else items.value.push({ ...c })
+  }
+}
+function addOne() { items.value.push({ name: '', portion: '一份' }) }
+
+function collect() {
   const valid = items.value.filter(x => (x.name || '').trim())
-  if (valid.length === 0) { alert('至少确认一项'); return }
-  appendDiary({ items: valid, imageSrc: imageSrc.value, confirmed: true, meal: guessMeal() })
-  setPending('recognize', null)
+  if (!valid.length) { alert('至少填一项菜品'); return null }
+  return {
+    items: valid, imageSrc: imageSrc.value,
+    confirmed: true, meal: meal.value,
+    deliveryStore: (deliveryStore.value || '').trim()
+  }
+}
+function saveOnly() {
+  const e = collect(); if (!e) return
+  appendDiary(e); setPending('recognize', null)
+  router.replace('/diary')
+}
+function save() {
+  const e = collect(); if (!e) return
+  appendDiary(e); setPending('recognize', null)
   router.replace('/recommend')
 }
 </script>
@@ -58,8 +120,13 @@ function confirm() {
 <style scoped>
 .item-row {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 0; border-bottom: 1px solid #f0f0f2;
+  padding: 6px 0;
 }
-.input.inline { flex: 1; padding: 8px 10px; font-size: 13px; }
-.del { border: none; background: transparent; color: #ff5252; font-size: 12px; cursor: pointer; }
+.input.inline { flex: 1; padding: 10px 12px; font-size: 14px; }
+.act {
+  background: transparent; border: 1px solid #e5e5ea;
+  color: #666; padding: 4px 10px; font-size: 14px;
+  border-radius: 8px; cursor: pointer;
+}
+.hint { color: #8e8e93; font-size: 12px; margin-top: 8px; }
 </style>

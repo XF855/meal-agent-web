@@ -18,9 +18,12 @@
 
       <div class="section-label">饭后感受</div>
       <div class="row">
-        <span v-for="o in ['舒服','偏腻','胀','困','其他']" :key="o" class="tag"
+        <span v-for="o in feelOptions" :key="o" class="tag"
               :class="{active: fb.feel === o}" @click="fb.feel = o">{{ o }}</span>
       </div>
+      <textarea v-if="fb.feel === '其他'" class="textarea" style="margin-top:8px;"
+                placeholder="说说饭后的具体感受，例如：喉咙有点干、胃有点反酸…"
+                v-model="fb.customFeel"></textarea>
 
       <div class="section-label">下次还愿意吃吗</div>
       <div class="row">
@@ -40,11 +43,14 @@ import { useRouter } from 'vue-router'
 import { getDiary, updateDiary } from '../services/store.js'
 
 const router = useRouter()
-const fb = reactive({ score: 4, fullness: '刚好', feel: '舒服', willAgain: '愿意' })
+const feelOptions = ['舒服', '偏腻', '胀', '困', '其他']
+const fb = reactive({ score: 4, fullness: '刚好', feel: '舒服', customFeel: '', willAgain: '愿意' })
 
 function submit() {
   const target = getDiary().find(d => d.awaitingFeedback)
-  if (target) updateDiary(target.id, { awaitingFeedback: false, feedback: { ...fb } })
+  const payload = { ...fb }
+  if (payload.feel !== '其他') payload.customFeel = ''
+  if (target) updateDiary(target.id, { awaitingFeedback: false, feedback: payload })
   alert('已记录，谢谢反馈')
   router.replace('/today')
 }

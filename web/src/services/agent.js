@@ -13,21 +13,20 @@ async function invoke(action, payload) {
     return data
   } catch (e) {
     console.warn('[agent] request failed, use local mock:', e)
-    return localMock(action)
+    return localMock(action, payload)
   }
 }
 
-function localMock(action) {
+function localMock(action, payload) {
   if (action === 'recognizeMeal') {
     return {
       ok: true, source: 'local-mock',
       data: {
         items: [
-          { name: '米饭', portion: '一碗', method: '蒸', confidence: 0.9 },
-          { name: '红烧鸡肉', portion: '一份', method: '红烧', confidence: 0.85 },
-          { name: '炒青菜', portion: '一小份', method: '清炒', confidence: 0.8 }
-        ],
-        followUps: ['米饭大约多少？', '鸡肉是否带皮？', '有没有喝饮料？']
+          { name: '米饭', portion: '一碗' },
+          { name: '红烧鸡肉', portion: '一份' },
+          { name: '炒青菜', portion: '一小份' }
+        ]
       }
     }
   }
@@ -43,9 +42,36 @@ function localMock(action) {
       }
     }
   }
+  if (action === 'dailyNutrition') {
+    return {
+      ok: true, source: 'local-mock',
+      data: {
+        items: [
+          { name: '深色蔬菜', portion: '1~2 拳头', why: '连续两天蔬菜量偏少' },
+          { name: '优质蛋白（鱼/鸡胸/豆制品）', portion: '一掌心', why: '最近以红肉为主，换个来源' },
+          { name: '全谷或杂豆主食', portion: '一拳头', why: '把精米白面替换一半，稳定血糖' }
+        ],
+        summary: '整体口味偏重，今天可以清淡一点。'
+      }
+    }
+  }
+  if (action === 'party') {
+    return {
+      ok: true, source: 'local-mock',
+      data: {
+        picks: [
+          { key: 'all', title: '最适合所有人', dish: '清汤 + 番茄双拼火锅', reason: '避开辣度冲突、素食和荤食都能点。', budget: '80~120 元/人', notes: '锅底一半清汤照顾不吃辣的一位；素食者以豆制品和菌菇为主。' },
+          { key: 'fun', title: '最有趣', dish: '街头小吃拼盘', reason: '每人挑不同摊子，气氛轻松。', budget: '40~80 元/人', notes: '注意花生和海鲜过敏项。' },
+          { key: 'easy', title: '最方便', dish: '连锁快餐 + 单点', reason: '出餐快，人均消费低。', budget: '35~55 元/人', notes: '各点各的，避开共享盘。' }
+        ]
+      }
+    }
+  }
   return { ok: true, source: 'local-mock', data: { reply: '（离线 Mock 回复）已按你的要求调整。' } }
 }
 
 export const recognizeMeal = (payload) => invoke('recognizeMeal', payload)
 export const recommend = (payload) => invoke('recommend', payload)
 export const chat = (payload) => invoke('chat', payload)
+export const dailyNutrition = (payload) => invoke('dailyNutrition', payload)
+export const party = (payload) => invoke('party', payload)

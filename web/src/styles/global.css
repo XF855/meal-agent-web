@@ -1,52 +1,79 @@
-* { box-sizing: border-box; }
+/* iOS 极简风格：白底、细分割线、系统字体、蓝色强调色 */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #app {
   margin: 0; padding: 0;
-  background: #f7f7f8;
-  color: #222;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Segoe UI, sans-serif;
-  font-size: 14px;
-  -webkit-tap-highlight-color: transparent;
+  background: #f2f2f7;
+  color: #1c1c1e;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+               "Helvetica Neue", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
 }
+input, button, textarea { font-family: inherit; }
 
+/* 卡片：白面 + 极细影 */
 .card {
-  background: #fff;
-  border-radius: 14px;
-  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
-.title { font-size: 20px; font-weight: 600; margin: 0 0 8px 0; }
-.subtitle { color: #888; font-size: 13px; margin-bottom: 12px; }
 
+.title {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.4px;
+  margin: 0 0 6px 0; color: #000;
+}
+.subtitle { color: #8e8e93; font-size: 13px; margin-bottom: 10px; }
+.section-label {
+  color: #6d6d72; font-size: 12px; font-weight: 500;
+  margin: 14px 0 6px; text-transform: none;
+  letter-spacing: 0;
+}
+
+/* 按钮 */
 .btn-primary, .btn-ghost {
   display: block; width: 100%;
-  border-radius: 24px; padding: 12px 0;
-  text-align: center; font-size: 15px;
+  border-radius: 12px; padding: 13px 0;
+  text-align: center; font-size: 16px; font-weight: 600;
   border: none; cursor: pointer;
-  transition: opacity .15s;
+  transition: opacity .15s, background .15s;
 }
-.btn-primary { background: #ff7043; color: #fff; }
-.btn-primary:hover { opacity: 0.9; }
+.btn-primary { background: #007aff; color: #fff; }
+.btn-primary:active { opacity: 0.82; }
 .btn-ghost {
-  background: #fff; color: #ff7043;
-  border: 1px solid #ff7043;
+  background: #ffffff; color: #007aff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
-.btn-primary + .btn-ghost, .btn-ghost + .btn-primary { margin-top: 12px; }
+.btn-ghost:active { background: #f2f2f7; }
+.btn-primary + .btn-ghost, .btn-ghost + .btn-primary,
+.btn-primary + .btn-primary, .btn-ghost + .btn-ghost { margin-top: 10px; }
 
-.row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+/* 标签（选项） */
+.row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .tag {
   display: inline-block;
-  padding: 4px 12px; border-radius: 16px;
-  background: #f2f2f4; color: #555;
+  padding: 6px 12px; border-radius: 16px;
+  background: #f2f2f7; color: #3c3c43;
   font-size: 13px; cursor: pointer;
   user-select: none;
+  transition: background .1s, color .1s;
 }
-.tag.active { background: #ffe6dc; color: #ff7043; }
+.tag.active { background: #007aff; color: #fff; }
 
-.input {
+/* 输入框 */
+.input, .textarea {
   width: 100%;
-  background: #f3f3f5; border: none;
-  border-radius: 10px; padding: 12px 14px;
-  font-size: 14px; outline: none;
+  background: #f2f2f7; border: none;
+  border-radius: 10px; padding: 11px 14px;
+  font-size: 15px; outline: none;
+  color: #1c1c1e;
 }
-.section-label { color: #999; font-size: 12px; margin: 12px 0 6px; }
+.textarea { min-height: 66px; resize: vertical; line-height: 1.5; }
+.input:focus, .textarea:focus { background: #e9e9ee; }
+
+/* 分割线 */
+.hr { height: 1px; background: rgba(60,60,67,0.14); margin: 12px 0; }
+
+/* 危险色 */
+.danger { color: #ff3b30 !important; }

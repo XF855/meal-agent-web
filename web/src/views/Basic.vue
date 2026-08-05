@@ -17,11 +17,20 @@
     </div>
 
     <div class="card">
-      <div class="section-label">食物过敏（硬性过滤）</div>
+      <div class="section-label">食物过敏（硬性过滤，永不推荐）</div>
       <div class="row">
         <span v-for="o in allergyOptions" :key="o"
               class="tag" :class="{active: form.allergies.includes(o)}"
               @click="toggle('allergies', o)">{{ o }}</span>
+        <span v-for="c in customAllergies" :key="'c-'+c"
+              class="tag active" @click="removeCustom('allergies', c)">
+          {{ c }} ×
+        </span>
+      </div>
+      <div class="add-row">
+        <input class="input" placeholder="其他过敏原，回车添加"
+               v-model="allergyDraft" @keyup.enter="addCustom('allergies')"/>
+        <button class="add-btn" @click="addCustom('allergies')">添加</button>
       </div>
     </div>
 
@@ -31,6 +40,15 @@
         <span v-for="o in tabooOptions" :key="o"
               class="tag" :class="{active: form.taboos.includes(o)}"
               @click="toggle('taboos', o)">{{ o }}</span>
+        <span v-for="c in customTaboos" :key="'ct-'+c"
+              class="tag active" @click="removeCustom('taboos', c)">
+          {{ c }} ×
+        </span>
+      </div>
+      <div class="add-row">
+        <input class="input" placeholder="其他忌口，回车添加"
+               v-model="tabooDraft" @keyup.enter="addCustom('taboos')"/>
+        <button class="add-btn" @click="addCustom('taboos')">添加</button>
       </div>
     </div>
 
@@ -48,7 +66,7 @@
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getProfile, setProfile } from '../services/store.js'
 
@@ -61,6 +79,13 @@ const allergyOptions = ['花生', '坚果', '海鲜', '虾', '蟹', '牛奶', '�
 const tabooOptions = ['不吃猪肉', '不吃牛肉', '不吃动物内脏', '低钠', '低糖', '低脂', '低嘌呤']
 const dietOptions = ['普通', '素食', '蛋奶素', '清真', '低碳水', '高蛋白']
 
+const allergyDraft = ref('')
+const tabooDraft = ref('')
+
+// 自定义项 = 已选中但不在预设里的
+const customAllergies = computed(() => form.allergies.filter(x => !allergyOptions.includes(x)))
+const customTaboos = computed(() => form.taboos.filter(x => !tabooOptions.includes(x)))
+
 onMounted(() => {
   const p = getProfile() || {}
   if (p.basic) Object.assign(form, p.basic)
@@ -69,6 +94,17 @@ function toggle(field, val) {
   const arr = form[field]
   const idx = arr.indexOf(val)
   if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
+}
+function addCustom(field) {
+  const draftRef = field === 'allergies' ? allergyDraft : tabooDraft
+  const v = (draftRef.value || '').trim()
+  if (!v) return
+  if (!form[field].includes(v)) form[field].push(v)
+  draftRef.value = ''
+}
+function removeCustom(field, v) {
+  const idx = form[field].indexOf(v)
+  if (idx >= 0) form[field].splice(idx, 1)
 }
 function next() {
   if (!form.birthYear) { alert('请填写出生年份'); return }
@@ -80,6 +116,13 @@ function next() {
 </script>
 
 <style scoped>
-.progress { height: 4px; background: #eee; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
-.progress-inner { height: 100%; background: #ff7043; }
+.progress { height: 3px; background: #e5e5ea; border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
+.progress-inner { height: 100%; background: #007aff; }
+.add-row { display: flex; gap: 8px; margin-top: 10px; }
+.add-row .input { flex: 1; }
+.add-btn {
+  background: #f2f2f7; border: none;
+  color: #007aff; font-size: 14px;
+  padding: 0 16px; border-radius: 10px; cursor: pointer;
+}
 </style>

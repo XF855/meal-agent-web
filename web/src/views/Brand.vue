@@ -27,7 +27,7 @@ function skip() {
 
 <style scoped>
 .hero { padding: 60px 0 30px; text-align: center; }
-.hero-title { font-size: 34px; font-weight: 700; color: #ff7043; line-height: 1.25; }
-.hero-sub { margin-top: 16px; color: #888; font-size: 12px; }
-.intro { text-align: center; color: #555; font-size: 15px; line-height: 1.6; padding: 20px 16px 40px; }
+.hero-title { font-size: 38px; font-weight: 700; color: #007aff; line-height: 1.2; letter-spacing: -0.6px; }
+.hero-sub { margin-top: 18px; color: #8e8e93; font-size: 12px; }
+.intro { text-align: center; color: #3c3c43; font-size: 15px; line-height: 1.6; padding: 20px 16px 40px; }
 </style>

@@ -53,6 +53,61 @@ export function clearAll() {
   [K_PROFILE, K_DIARY, K_TODAY, K_LAST_RECO, K_PENDING].forEach(k => localStorage.removeItem(k))
 }
 
+// 收集最近使用过的外卖店铺，供推荐参考
+export function getDeliveryStores(limit) {
+  const map = {}
+  getDiary().forEach(d => {
+    const s = (d.deliveryStore || '').trim()
+    if (!s) return
+    if (!map[s]) map[s] = { name: s, count: 0, last: 0, dishes: [] }
+    map[s].count += 1
+    map[s].last = Math.max(map[s].last, d.createdAt || 0)
+    ;(d.items || []).forEach(it => {
+      if (it && it.name && !map[s].dishes.includes(it.name)) map[s].dishes.push(it.name)
+    })
+  })
+  const arr = Object.values(map).sort((a, b) => b.count - a.count || b.last - a.last)
+  return typeof limit === 'number' ? arr.slice(0, limit) : arr
+}
+
+// 画像导出为分享文本（Base64 JSON）
+export function exportProfileText() {
+  const payload = {
+    v: 1,
+    exportedAt: Date.now(),
+    profile: getProfile()
+  }
+  const json = JSON.stringify(payload)
+  // 使用 URL 安全 base64，方便通过短信/微信复制
+  return 'MEAL1:' + btoa(unescape(encodeURIComponent(json)))
+}
+
+// 解码分享文本 → 画像对象；失败返回 null
+export function decodeProfileText(text) {
+  if (!text) return null
+  const s = String(text).trim()
+  const body = s.startsWith('MEAL1:') ? s.slice(6) : s
+  try {
+    const json = decodeURIComponent(escape(atob(body)))
+    const obj = JSON.parse(json)
+    if (obj && obj.profile) return obj.profile
+    if (obj && obj.basic) return obj              // 兼容直接粘 JSON
+  } catch (e) {
+    try {
+      const obj = JSON.parse(s)
+      if (obj && (obj.basic || obj.prefer)) return obj
+    } catch (e2) {}
+  }
+  return null
+}
+
+// 覆盖式导入本机画像
+export function importProfile(profile) {
+  if (!profile) return false
+  setProfile(Object.assign({}, profile, { onboarded: true }))
+  return true
+}
+
 export function deriveAgeMode(profile) {
   const by = (profile && profile.basic && profile.basic.birthYear) || (profile && profile.birthYear)
   if (!by) return 'adult'
