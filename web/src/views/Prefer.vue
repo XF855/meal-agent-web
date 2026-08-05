@@ -66,7 +66,7 @@ const spicyOptions = [
   { value: 0, label: '不吃辣' }, { value: 1, label: '微辣' },
   { value: 2, label: '中辣' }, { value: 3, label: '重辣' }
 ]
-const sceneOptions = ['自己做饭', '外卖', '餐厅']
+const sceneOptions = ['自己做饭', '餐厅']
 const budgetOptions = ['≤ 20 元', '20~40 元', '40~80 元', '≥ 80 元']
 
 onMounted(() => {

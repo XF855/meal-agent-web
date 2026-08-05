@@ -45,7 +45,7 @@ async function load(refineHint) {
   const profile = getProfile()
   const last = getLastReco()
   const todayCtx = getTodayContext()
-  const wantsPlaces = todayCtx && (todayCtx.scene === '餐厅' || todayCtx.scene === '外卖')
+  const wantsPlaces = todayCtx && todayCtx.scene === '餐厅'
   const r = await agent.recommend({
     profile,
     todayContext: todayCtx,

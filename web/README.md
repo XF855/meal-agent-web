@@ -123,7 +123,7 @@ web/
 | `chat` | RecommendDetail 追问 | `userText, profile, todayContext, history` | `{reply: string}` |
 | （未定义） | — | — | 后端返 `400 unknown_action` |
 
-**recommend 的位置注入**：当 `payload.location` 存在且 `todayContext.scene ∈ {'餐厅', '外卖'}` 时，后端会先打 Google Places API 拉附近店家（评分 ≥ 3.8、评价数 ≥ 15 的前 8 家），把 `nearbyPlaces` 注入 Claude 上下文再让它生成推荐。前端不直接调 Places，Key 只在服务端。外卖场景优先 `meal_takeaway/fast_food_restaurant` 类型的店。
+**recommend 的位置注入**：当 `payload.location` 存在且 `todayContext.scene === '餐厅'`（涵盖堂食/外卖/快餐）时，后端会先打 Google Places API 拉附近店家（评分 ≥ 3.8、评价数 ≥ 15 的前 8 家），把 `nearbyPlaces` 注入 Claude 上下文再让它生成推荐。前端不直接调 Places，Key 只在服务端。
 
 ### 4.3 为什么这样切
 
@@ -183,7 +183,7 @@ Claude 返回文本 → 正则抽 JSON → parse → 校验 picks 是数组
 4. 聚餐推荐固定返回三张卡：最适合所有人 / 最有趣 / 最方便，任一人的 allergies/taboos 都要硬性排除。
 5. 菜名要具体，附大致份量、做法或点单方式。
 6. 若提供了近期外卖店铺记录（recentStores），可以直接推荐用户常吃店铺里的菜（记得写出店名）。
-7. 若提供了附近店家列表（nearbyPlaces）且用户场景是"餐厅"或"外卖"：
+7. 若提供了附近店家列表（nearbyPlaces）且用户场景是"餐厅"：
    - 三张推荐卡里至少有两张要来自 nearbyPlaces。
    - dish 字段格式："餐厅名 · 具体菜品"。
    - reason 里必须提到评分（rating）和距离（distanceMeters）。
@@ -206,14 +206,14 @@ Claude 返回文本 → 正则抽 JSON → parse → 校验 picks 是数组
     },
     "prefer": {
       "cuisines": ["川菜", "本帮菜"],
-      "spicy": 2, "scenes": ["外卖", "餐厅"],
+      "spicy": 2, "scenes": ["餐厅"],
       "budget": "20~40 元",
       "favorites": "番茄鸡蛋", "dislikes": "香菜"
     }
   },
   "todayContext": {
     "hunger": "很饿", "mood": "疲惫",
-    "time": "20 分钟", "scene": "外卖", "crave": "热汤",
+    "time": "20 分钟", "scene": "餐厅", "crave": "热汤",
     "personalNote": "今天不想吃米饭，想吃茄子"    // 用户自由文本
   },
   "recentDiary": [
@@ -322,17 +322,17 @@ Claude 返回文本 → 正则抽 JSON → parse → 校验 picks 是数组
 
 ### 5.10 附近餐厅（Google Places）
 
-**触发条件**：`todayContext.scene ∈ {'餐厅', '外卖'}` 且用户在 Today 页点过"开启定位"。
+**触发条件**：`todayContext.scene === '餐厅'` 且用户在 Today 页点过"开启定位"。餐厅场景涵盖堂食/外卖/快餐。
 
 **前端流程**（`Today.vue`）：
-1. 用户把场景切到"餐厅/外卖" → 卡片下方出现"开启定位，用附近好评餐厅/外卖商家优化推荐 →"
+1. 用户把场景切到"餐厅" → 卡片下方出现"开启定位，用附近好评餐厅优化推荐 →"
 2. 点一下调用 `navigator.geolocation.getCurrentPosition`
 3. 获得的 `{lat, lng, accuracy}` 存进 `localStorage.meal_location`（有效期 30 分钟）
 4. 后续 `RecommendList.vue` 每次 recommend 都自动把 `location` 塞进 payload
 
 **后端流程**（`api/agent.js` 的 `fetchNearbyRestaurants`）：
 1. 调 `POST https://places.googleapis.com/v1/places:searchNearby`（Places API New）
-2. `locationRestriction.circle.radius` 餐厅 1200m / 外卖 1500m；`includedTypes` 外卖优先 `meal_takeaway/fast_food_restaurant`
+2. `locationRestriction.circle.radius: 1500m`；`includedTypes: ['restaurant','meal_takeaway','fast_food_restaurant','cafe','bakery']`（一次涵盖堂食+外卖+快餐）
 3. `includedTypes: ['restaurant', 'cafe', 'meal_takeaway', 'bakery']`
 4. `X-Goog-FieldMask` 精确挑字段（不返回不需要的以省钱）：id / displayName / primaryType / types / rating / userRatingCount / priceLevel / location / formattedAddress / currentOpeningHours.openNow
 5. 客户端二次过滤：`rating >= 3.8` 且 `userRatingCount >= 15`，先按评分再按 haversine 距离排序，取前 8
@@ -488,7 +488,7 @@ git branch -M main && git push -u origin main
 | `ANTHROPIC_MODEL` | 可选 | `claude-opus-4-7` | 也可 `claude-sonnet-4-6` / `claude-haiku-4-5-20251001` |
 | `ANTHROPIC_BASE_URL` | 可选 | `https://api.anthropic.com` | 第三方代理（eazo 等） |
 | `ANTHROPIC_AUTH_STYLE` | 可选 | `x-api-key` | 代理若要 Bearer 就填 `bearer` |
-| `GOOGLE_PLACES_API_KEY` | 可选 | 无 | 启用后，用户场景="餐厅/外卖" 且授权定位时，推荐会结合附近好评店家 |
+| `GOOGLE_PLACES_API_KEY` | 可选 | 无 | 启用后，用户场景="餐厅" 且授权定位时，推荐会结合附近好评店家（涵盖堂食/外卖/快餐） |
 
 **加完变量必须 Deployments → Redeploy（取消 Use existing Build Cache）**，旧部署不会自动读到新变量。
 

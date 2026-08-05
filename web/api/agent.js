@@ -4,7 +4,7 @@
 //   ANTHROPIC_MODEL          可选，默认 claude-opus-4-7
 //   ANTHROPIC_BASE_URL       可选，第三方代理（如 eazo）用这个替换官方地址
 //   ANTHROPIC_AUTH_STYLE     可选，'x-api-key'（默认，官方）或 'bearer'（多数代理）
-//   GOOGLE_PLACES_API_KEY    可选，启用后 recommend 会在场景=餐厅/外卖时拉附近店家
+//   GOOGLE_PLACES_API_KEY    可选，启用后 recommend 会在场景=餐厅时拉附近店家
 // 未配置 KEY 时自动降级为 Mock，前端行为不受影响
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-7'
@@ -30,12 +30,11 @@ const SYSTEM_PROMPT = `你是一个"饮食决策 Agent"。目标：在安全、�
 4. 聚餐推荐固定返回三张卡：最适合所有人 / 最有趣 / 最方便，必须先取所有参与者共同的可吃菜系再做选择。聚餐中任一人的 allergies/taboos 都要硬性排除；healthPrefs 尽量兼顾。
 5. 菜名要具体，附大致份量、做法或点单方式。
 6. 若提供了近期外卖店铺记录（recentStores），可以直接推荐用户常吃店铺里的菜（记得写出店名）。
-7. 若提供了附近店家列表（nearbyPlaces）且用户场景是"餐厅"或"外卖"：
+7. 若提供了附近店家列表（nearbyPlaces）且用户场景是"餐厅"：
    - 三张推荐卡里至少有两张要来自 nearbyPlaces。
    - dish 字段格式："店名 · 具体菜品"。
    - reason 里必须提到评分（rating）和距离（distanceMeters），例如"评分 4.6 · 约 240m"。
    - 用 primaryType 和 typicalDishes 判断该店可能提供什么菜；如果这家店的品类与用户过敏/忌口冲突，则跳过该店。
-   - 若场景是"外卖"，优先 primaryType 属于 meal_takeaway/fast_food_restaurant 或距离在 800m 内的店。
    - 优先高评分（>=4.3）且评价数不少的店（userRatingCount >= 40）；两者都满足时距离越近越优。
 8. 若用户填了 refineHint（"更健康" / "更符合口味"），下一次推荐要显著向该方向靠拢。
 9. 输出必须是合法 JSON，字段严格匹配用户消息中的 schema，不要输出 JSON 以外的任何字符。`
@@ -183,6 +182,15 @@ const SCHEMAS = {
   }
 }
 
+// 各 action 的 token 上限：越大越慢，越小越可能被截断
+const MAX_TOKENS = {
+  recognizeMeal: 400,
+  recommend:     900,
+  dailyNutrition: 500,
+  party:         900,
+  chat:          400
+}
+
 async function callClaude(userJson, schemaKey, opts) {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return null
@@ -206,7 +214,7 @@ async function callClaude(userJson, schemaKey, opts) {
 
   const body = {
     model: MODEL,
-    max_tokens: 1500,
+    max_tokens: MAX_TOKENS[schemaKey] || 900,
     temperature: 0.4,
     system: SYSTEM_PROMPT,
     tools: [tool],
@@ -220,10 +228,27 @@ async function callClaude(userJson, schemaKey, opts) {
   if (AUTH_STYLE === 'bearer') headers['authorization'] = 'Bearer ' + key
   else headers['x-api-key'] = key
 
+  // 硬超时：留 5s 给后续 JSON 解析和 Vercel 网关响应
+  const abort = new AbortController()
+  const timeoutMs = (opts && opts.timeoutMs) || 45000
+  const to = setTimeout(() => abort.abort('claude_timeout'), timeoutMs)
+
   const t0 = Date.now()
-  const res = await fetch(ANTHROPIC_URL, {
-    method: 'POST', headers, body: JSON.stringify(body)
-  })
+  let res
+  try {
+    res = await fetch(ANTHROPIC_URL, {
+      method: 'POST', headers, body: JSON.stringify(body),
+      signal: abort.signal
+    })
+  } catch (e) {
+    clearTimeout(to)
+    const elapsed = Date.now() - t0
+    if (e && (e.name === 'AbortError' || String(e).includes('claude_timeout'))) {
+      throw new Error('claude_timeout (' + elapsed + 'ms, model=' + MODEL + ')')
+    }
+    throw new Error('claude_network (' + elapsed + 'ms) ' + (e && e.message || e))
+  }
+  clearTimeout(to)
   const elapsed = Date.now() - t0
   if (!res.ok) {
     const text = await res.text().catch(() => '')
@@ -321,7 +346,7 @@ export default async function handler(req, res) {
       const loc = (payload && payload.location) || null
       console.log('[recommend] scene=%s hasLoc=%s hasPlacesKey=%s',
         scene, !!(loc && loc.lat && loc.lng), !!process.env.GOOGLE_PLACES_API_KEY)
-      if (loc && loc.lat && loc.lng && (scene === '餐厅' || scene === '外卖')) {
+      if (loc && loc.lat && loc.lng && scene === '餐厅') {
         try {
           const places = await fetchNearbyRestaurants(loc, scene)
           console.log('[recommend] nearby places returned:', places.length)
@@ -461,11 +486,9 @@ async function fetchNearbyRestaurants(loc, scene) {
   const key = process.env.GOOGLE_PLACES_API_KEY
   if (!key) return []
 
-  // 外卖场景关注更近、更快出餐的店；堂食场景稍远一点接受
-  const radius = scene === '外卖' ? 1500 : 1200
-  const includedTypes = scene === '外卖'
-    ? ['meal_takeaway', 'fast_food_restaurant', 'restaurant', 'cafe', 'bakery']
-    : ['restaurant', 'cafe', 'meal_takeaway', 'bakery']
+  // 场景=餐厅：涵盖堂食 + 外卖 + 快餐，1500m 半径
+  const radius = 1500
+  const includedTypes = ['restaurant', 'meal_takeaway', 'fast_food_restaurant', 'cafe', 'bakery']
   const body = {
     includedTypes,
     maxResultCount: 15,
