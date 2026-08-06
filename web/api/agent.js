@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `你是饮食决策助手。帮用户在 1 分钟内决定
 规则：
 1. 过敏(allergies)和忌口(taboos)硬性排除，绝不推荐；健康偏好(healthPrefs)软性倾向。
 2. 单人三张卡：今天最合适/最想吃/最省事。若 todayContext.crave 非"无所谓"，三张必须都贴合该方向。
-3. 场景=餐厅时，三张卡 dish 格式为"店名 · 菜品"。优先 nearbyPlaces，其次 recentStores，都没有则用已知连锁/名店。reason 提评分和距离。
+3. 场景=餐厅时，三张卡 dish 格式为"店名 · 菜品"。优先 nearbyPlaces，其次 recentStores，都没有则用已知连锁/名店。reason 提评分和距离。若推荐来自 nearbyPlaces，必须把该店的 placeId 填入 placeId 字段。
 4. refineHint 非空时显著向该方向靠拢。
 5. 输出合法 JSON，匹配 schema。`
 
@@ -102,7 +102,8 @@ const SCHEMAS = {
               time:      { type: 'string' },
               allergens: { type: 'array', items: { type: 'string' } },
               swaps:     { type: 'array', items: { type: 'string' } },
-              howto:     { type: 'string' }
+              howto:     { type: 'string' },
+              placeId:   { type: 'string' }
             },
             required: ['key', 'title', 'dish', 'reason', 'budget', 'time']
           }
@@ -358,6 +359,7 @@ export default async function handler(req, res) {
             placesForMatching.push(...places)
             enriched.nearbyPlaces = places.slice(0, 2).map(p => ({
               name: p.name,
+              placeId: p.placeId,
               rating: p.rating,
               userRatingCount: p.userRatingCount,
               distanceMeters: p.distanceMeters,
@@ -486,8 +488,14 @@ function slimRecommendPayload(p) {
 function enrichPicksWithMapsUrl(picks, places) {
   if (!places || !places.length) return
   picks.forEach(pick => {
+    // Claude 直接返回了 nearbyPlaces 里的 placeId
+    if (pick.placeId) {
+      pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + pick.placeId
+      console.log('[maps] pick has placeId:', pick.placeId)
+      return
+    }
+    // fallback: 用店名模糊匹配
     const dish = pick.dish || ''
-    // 先用完整店名匹配，再试去掉括号内容后的短名
     const match = places.find(pl => {
       if (!pl.name) return false
       if (dish.includes(pl.name)) return true
@@ -495,9 +503,8 @@ function enrichPicksWithMapsUrl(picks, places) {
       return shortName && dish.includes(shortName)
     })
     if (match && match.placeId) {
-      pick.placeId = match.placeId
       pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + match.placeId
-      console.log('[maps] matched pick dish to place:', match.name)
+      console.log('[maps] matched by name:', match.name)
     } else {
       console.log('[maps] no match for dish:', dish.slice(0, 40))
     }
