@@ -173,11 +173,26 @@ const SCHEMAS = {
   },
   chat: {
     name: 'submit_reply',
-    description: '提交对用户追问的回复',
+    description: '如果只是纯文本回复用 reply 字段；如果在追问我希望你给出微调后的新推荐卡，用 cards[] + note 字段',
     input_schema: {
       type: 'object',
-      properties: { reply: { type: 'string' } },
-      required: ['reply']
+      properties: {
+        reply: { type: 'string' },
+        cards: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title:  { type: 'string' },
+              dish:   { type: 'string' },
+              reason: { type: 'string' }
+            },
+            required: ['title', 'dish', 'reason']
+          }
+        },
+        note: { type: 'string' }
+      },
+      required: []
     }
   }
 }
@@ -185,7 +200,7 @@ const SCHEMAS = {
 // 各 action 的 token 上限：越大越慢，越小越可能被截断
 const MAX_TOKENS = {
   recognizeMeal: 400,
-  recommend:     900,
+  recommend:     700,
   dailyNutrition: 500,
   party:         900,
   chat:          400
@@ -228,9 +243,9 @@ async function callClaude(userJson, schemaKey, opts) {
   if (AUTH_STYLE === 'bearer') headers['authorization'] = 'Bearer ' + key
   else headers['x-api-key'] = key
 
-  // 硬超时：留 5s 给后续 JSON 解析和 Vercel 网关响应
+  // 硬超时：留 5s 给 JSON 解析和 Vercel 网关响应（maxDuration=60s）
   const abort = new AbortController()
-  const timeoutMs = (opts && opts.timeoutMs) || 45000
+  const timeoutMs = (opts && opts.timeoutMs) || 55000
   const to = setTimeout(() => abort.abort('claude_timeout'), timeoutMs)
 
   const t0 = Date.now()
@@ -352,7 +367,7 @@ export default async function handler(req, res) {
           console.log('[recommend] nearby places returned:', places.length)
           if (places && places.length) {
             // 只保留 Claude 真正会用的字段，减少 token
-            enriched.nearbyPlaces = places.slice(0, 6).map(p => ({
+            enriched.nearbyPlaces = places.slice(0, 4).map(p => ({
               name: p.name,
               primaryType: p.primaryType,
               rating: p.rating,
