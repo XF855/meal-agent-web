@@ -378,15 +378,18 @@ export default async function handler(req, res) {
           // 把每张推荐卡匹配到对应餐厅的 Google Maps 链接
           for (const pick of data.picks) {
             const dish = pick.dish || ''
-            const dishShop = dish.split('·')[0].trim()  // "店名" 部分
+            const dishShop = dish.split(/[·・]/)[0].trim()
+            console.log('[maps] matching dish:', dish.slice(0, 50), '| shopPart:', dishShop)
             for (const pl of placesForMatching) {
               if (!pl.name || !pl.placeId) continue
-              const short = pl.name.replace(/[（(][^)）]*[)）]/g, '').trim()
-              if (short.includes(dishShop) || dishShop.includes(short) || dish.includes(short)) {
+              const short = pl.name.replace(/[（(][^)）]*[)）]/g, '').replace(/[·・].*/, '').trim()
+              if (short.includes(dishShop) || dishShop.includes(short) || dish.includes(short) || dish.includes(pl.name)) {
                 pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + pl.placeId
+                console.log('[maps] matched:', dishShop, '->', short, '->', pl.name)
                 break
               }
             }
+            if (!pick.mapsUrl) console.log('[maps] no match for dishShop:', dishShop, 'places:', placesForMatching.map(p => p.name).join(', '))
           }
           const nearbyLinks = placesForMatching.slice(0, 4).map(p => ({
             name: p.name,
