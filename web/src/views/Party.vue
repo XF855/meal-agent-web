@@ -112,7 +112,7 @@ function newMember(base) {
   return {
     id: ++idSeq,
     isMe: !!(base && base.isMe),
-    name: (base && base.name) || ('朋友 ' + (idSeq - 1)),
+    name: (base && base.name) || '',
     cuisines: (base && base.cuisines) || [],
     spicy: (base && base.spicy) != null ? base.spicy : 1,
     allergies: (base && base.allergies) || [],
@@ -120,6 +120,9 @@ function newMember(base) {
     healthPrefs: (base && base.healthPrefs) || [],
     _allergyDraft: '', _tabooDraft: '', _importDraft: ''
   }
+}
+function nextFriendName() {
+  return '朋友 ' + (members.value.filter(m => !m.isMe).length + 1)
 }
 
 onMounted(() => {
@@ -133,10 +136,10 @@ onMounted(() => {
     taboos: (my.basic && my.basic.taboos) || [],
     healthPrefs: (my.basic && my.basic.healthPrefs) || []
   }))
-  members.value.push(newMember({}))  // 默认加一位待填的朋友
+  addMember()
 })
 
-function addMember() { members.value.push(newMember({})) }
+function addMember() { members.value.push(newMember({ name: nextFriendName() })) }
 function removeMember(idx) { members.value.splice(idx, 1) }
 function addTag(m, field, v) { if (!m[field].includes(v)) m[field].push(v) }
 function removeTag(m, field, v) {
