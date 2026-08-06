@@ -386,16 +386,21 @@ export default async function handler(req, res) {
             // fallback: 文本匹配
             const dish = pick.dish || ''
             const dishShop = dish.split(/[·・]/)[0].trim()
-            console.log('[maps] matching dish:', dish.slice(0, 50), '| shopPart:', dishShop)
+            console.log('[maps] matching dish:', dish.slice(0, 50), '| shopPart:', dishShop, '| places:', placesForMatching.map(p => p.name).join(' || '))
             for (const pl of placesForMatching) {
               if (!pl.name || !pl.placeId) continue
               const short = pl.name.replace(/[（(][^)）]*[)）]/g, '').replace(/[·・].*/, '').trim()
               const enMatch = pl.name.match(/[（(]([a-zA-Z][^)）]*)[)）]/)
               const enName = enMatch ? enMatch[1].trim() : ''
+              // 双向包含 + 前 N 个字匹配
+              const head2 = dishShop.slice(0, 2), head3 = dishShop.slice(0, 3)
               const matched = short.includes(dishShop) || dishShop.includes(short)
                 || dish.includes(short) || dish.includes(pl.name)
                 || (enName && dish.toLowerCase().includes(enName.toLowerCase()))
                 || (dishShop && pl.name.includes(dishShop))
+                || (head3 && short.includes(head3))
+                || (head2 && short.includes(head2))
+                || (head2 && pl.name.includes(head2))
               if (matched) {
                 pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + pl.placeId
                 console.log('[maps] matched:', dishShop, '->', short, pl.name)
