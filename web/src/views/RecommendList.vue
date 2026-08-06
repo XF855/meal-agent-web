@@ -23,6 +23,15 @@
       <button class="btn-ghost slim" @click="load('tastier')">😋 更符合口味的</button>
       <button class="btn-ghost slim" @click="load(null)">↻ 直接换一批</button>
     </div>
+
+    <div v-if="nearbyLinks.length" class="card nearby-section">
+      <div class="section-label">附近餐厅 · Google Maps</div>
+      <a v-for="l in nearbyLinks" :key="l.mapsUrl" :href="l.mapsUrl" target="_blank"
+         class="nearby-item">
+        <span class="nearby-name">{{ l.name }}</span>
+        <span class="nearby-meta">评分 {{ l.rating }} · {{ l.distanceMeters }}m</span>
+      </a>
+    </div>
   </div>
 </template>
 
@@ -40,6 +49,7 @@ const router = useRouter()
 const picks = ref([])
 const loading = ref(true)
 const nearbyUsed = ref(0)
+const nearbyLinks = ref([])
 
 async function load(refineHint) {
   loading.value = true
@@ -61,6 +71,7 @@ async function load(refineHint) {
   if (r && r.ok) {
     picks.value = r.data.picks || []
     nearbyUsed.value = (r.meta && r.meta.nearbyPlacesCount) || 0
+    nearbyLinks.value = (r.meta && r.meta.nearbyLinks) || []
     setLastReco({ picks: picks.value, refineHint, at: Date.now() })
   } else {
     alert('推荐失败')
@@ -99,6 +110,18 @@ onMounted(() => load(null))
   border-bottom: 1px solid rgba(66,133,244,0.3);
 }
 .maps-link:hover { color: #2a5bbf; border-color: rgba(42,91,191,0.5); }
+.nearby-section {
+  padding: 20px 0;
+}
+.nearby-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid rgba(74,52,40,0.06);
+  text-decoration: none; color: inherit;
+}
+.nearby-item:last-child { border-bottom: none; }
+.nearby-item:hover { color: #4285F4; }
+.nearby-name { font-size: 15px; color: #2a1e17; }
+.nearby-meta { font-size: 12px; color: #a89684; white-space: nowrap; margin-left: 12px; }
 .refine .q-title {
   font-size: 12px; color: #a89684;
   letter-spacing: 0.08em; text-transform: uppercase;

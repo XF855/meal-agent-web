@@ -375,11 +375,16 @@ export default async function handler(req, res) {
       try {
         const data = await callClaude(enriched, 'recommend')
         if (data && Array.isArray(data.picks)) {
-          // 把 Claude 推荐的店名匹配回 Google Maps 链接
-          enrichPicksWithMapsUrl(data.picks, placesForMatching)
+          // 构建附近餐厅的 Google Maps 链接（不依赖 Claude 传回 placeId）
+          const nearbyLinks = placesForMatching.slice(0, 4).map(p => ({
+            name: p.name,
+            rating: p.rating,
+            distanceMeters: p.distanceMeters,
+            mapsUrl: p.placeId ? 'https://www.google.com/maps/place/?q=place_id:' + p.placeId : null
+          })).filter(l => l.mapsUrl)
           return res.status(200).json({
             ok: true, source: 'claude', data,
-            meta: { nearbyPlacesCount: (enriched.nearbyPlaces || []).length }
+            meta: { nearbyPlacesCount: (enriched.nearbyPlaces || []).length, nearbyLinks }
           })
         }
       } catch (e) { console.error('recommend claude error:', e.message) }
