@@ -375,7 +375,19 @@ export default async function handler(req, res) {
       try {
         const data = await callClaude(enriched, 'recommend')
         if (data && Array.isArray(data.picks)) {
-          // 构建附近餐厅的 Google Maps 链接（不依赖 Claude 传回 placeId）
+          // 把每张推荐卡匹配到对应餐厅的 Google Maps 链接
+          for (const pick of data.picks) {
+            const dish = pick.dish || ''
+            const dishShop = dish.split('·')[0].trim()  // "店名" 部分
+            for (const pl of placesForMatching) {
+              if (!pl.name || !pl.placeId) continue
+              const short = pl.name.replace(/[（(][^)）]*[)）]/g, '').trim()
+              if (short.includes(dishShop) || dishShop.includes(short) || dish.includes(short)) {
+                pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + pl.placeId
+                break
+              }
+            }
+          }
           const nearbyLinks = placesForMatching.slice(0, 4).map(p => ({
             name: p.name,
             rating: p.rating,
