@@ -188,7 +188,7 @@ const SCHEMAS = {
 // 各 action 的 token 上限：越大越慢，越小越可能被截断
 const MAX_TOKENS = {
   recognizeMeal: 400,
-  recommend:     400,
+  recommend:     300,
   dailyNutrition: 500,
   party:         900,
   chat:          400
@@ -218,7 +218,7 @@ async function callClaude(userJson, schemaKey, opts) {
   const body = {
     model: MODEL,
     max_tokens: MAX_TOKENS[schemaKey] || 900,
-    temperature: 0.4,
+    temperature: 0,
     system: SYSTEM_PROMPT,
     tools: [tool],
     tool_choice: { type: 'tool', name: tool.name },
