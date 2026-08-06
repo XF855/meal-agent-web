@@ -18,16 +18,15 @@ function buildUrl() {
 }
 const ANTHROPIC_URL = buildUrl()
 
-const SYSTEM_PROMPT = `你是饮食决策助手。帮用户在 1 分钟内决定下一餐。
+const SYSTEM_PROMPT = `你是饮食决策助手，帮用户 1 分钟内决定下一餐。
 
 规则：
-1. 过敏(allergies)和忌口(taboos)硬性排除，绝不推荐；健康偏好(healthPrefs)软性倾向。
-2. 单人三张卡：今天最合适/最想吃/最省事。若 todayContext.crave 非"无所谓"，三张必须都贴合该方向。
-3. 场景=餐厅时：三张卡 dish 格式"店名 · 菜品"，且三张都必须从 nearbyPlaces 中选店。若 nearbyPlaces 不足 3 家，不足的用 recentStores 或已知连锁/名店补齐。reason 提评分和距离。若推荐来自 nearbyPlaces，必须把该店的 placeId 填入 placeId 字段。nearbyPlaces 已随机排列，尽量从不同店中挑选。
-4. todayContext.budget 是用户当前设定的单餐预算上限，三张卡都必须严格在此预算范围内。若用户用自定义范围（如"30~60 元"），dish 的总花费必须落在此区间内。
-5. refineHint 非空时显著向该方向靠拢。
-6. seed 字段用于增加推荐多样性，你应基于 seed 值调整你的选择（如变换菜系、烹饪方式、具体菜品），使同一用户连续请求时结果不会重复。
-7. 输出合法 JSON，匹配 schema。`
+1. 过敏(allergies)和忌口(taboos)硬排除；健康偏好(healthPrefs)软倾向。
+2. 单人三卡：最合适/最想吃/最省事。若 crave 非"无所谓"，三张必须贴合该方向。
+3. 餐厅场景：dish 格式"店名 · 菜品"，三张必须从 nearbyPlaces 选店。reason 提评分和距离，placeId 填回对应店的 placeId。尽量不同店。
+4. budget 是单餐预算硬约束，三张必须严格在范围内。
+5. refineHint 非空时向该方向靠拢。seed 用于变化选择避免重复。
+6. 输出合法 JSON。`
 
 const MOCK = {
   recognizeMeal: {
@@ -191,7 +190,7 @@ const SCHEMAS = {
 // 各 action 的 token 上限：越大越慢，越小越可能被截断
 const MAX_TOKENS = {
   recognizeMeal: 400,
-  recommend:     300,
+  recommend:     250,
   dailyNutrition: 500,
   party:         900,
   chat:          400
@@ -215,7 +214,7 @@ async function callClaude(userJson, schemaKey, opts) {
   }
   userContent.push({
     type: 'text',
-    text: `请调用工具 ${tool.name} 提交你的结果。\n\n上下文数据：\n${JSON.stringify(userJson)}`
+    text: `提交结果。数据：${JSON.stringify(userJson)}`
   })
 
   const body = {
@@ -363,9 +362,7 @@ export default async function handler(req, res) {
             enriched.nearbyPlaces = shuffled.slice(0, 3).map(p => ({
               name: p.name,
               placeId: p.placeId,
-              rating: p.rating,
-              distanceMeters: p.distanceMeters,
-              typicalDishes: p.typicalDishes
+              dishes: p.typicalDishes
             }))
           }
         } catch (e) {
@@ -502,13 +499,9 @@ function slimRecommendPayload(p) {
       prefer: {
         cuisines: pr.cuisines || [],
         spicy: pr.spicy,
-        budget: pr.budget,
         favorites: pr.favorites,
-        dislikes: pr.dislikes,
-        scenes: pr.scenes || []
-      },
-      // 今日预算优先于画像预算
-      budget: (p.todayContext && p.todayContext.budget) || pr.budget
+        dislikes: pr.dislikes
+      }
     }
   }
   if (p.todayContext) {
@@ -520,8 +513,7 @@ function slimRecommendPayload(p) {
     }
   }
   if (Array.isArray(p.recentDiary)) {
-    // 只保留最近 5 顿的关键字段
-    out.recentDiary = p.recentDiary.slice(0, 5).map(d => ({
+    out.recentDiary = p.recentDiary.slice(0, 3).map(d => ({
       meal: d.meal,
       items: (d.items || []).map(i => ({ name: i.name, portion: i.portion })),
       deliveryStore: d.deliveryStore,
@@ -529,12 +521,13 @@ function slimRecommendPayload(p) {
     }))
   }
   if (Array.isArray(p.recentStores)) {
-    out.recentStores = p.recentStores.slice(0, 4).map(s => ({
-      name: s.name, count: s.count, dishes: (s.dishes || []).slice(0, 4)
+    out.recentStores = p.recentStores.slice(0, 3).map(s => ({
+      name: s.name, count: s.count, dishes: (s.dishes || []).slice(0, 3)
     }))
   }
   if (p.ageMode) out.ageMode = p.ageMode
   if (p.refineHint) out.refineHint = p.refineHint
+  if (p.seed != null) out.seed = p.seed
   if (Array.isArray(p.previousPicks)) {
     out.previousPicks = p.previousPicks.slice(0, 3).map(x => ({ key: x.key, dish: x.dish }))
   }

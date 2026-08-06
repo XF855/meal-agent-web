@@ -66,7 +66,7 @@ async function load(refineHint) {
     todayContext: todayCtx,
     recentDiary: getDiary().slice(0, 6),
     ageMode: deriveAgeMode(profile),
-    recentStores: getDeliveryStores(5),
+    recentStores: getDeliveryStores(3),
     location: loc,
     refineHint,
     previousPicks: last ? last.picks : null,
