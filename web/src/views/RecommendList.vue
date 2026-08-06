@@ -14,6 +14,7 @@
         <span v-for="a in (p.allergens || [])" :key="a" class="tag danger-tag">含 {{ a }}</span>
       </div>
       <p class="pick-reason">{{ p.reason }}</p>
+      <a v-if="p.mapsUrl" :href="p.mapsUrl" target="_blank" class="maps-link" @click.stop>Google Maps 查看 →</a>
     </div>
 
     <div v-if="!loading" class="card refine">
@@ -92,6 +93,12 @@ onMounted(() => load(null))
   letter-spacing: 0.06em; margin: 0 0 8px 0;
 }
 .danger-tag { border-color: rgba(160,74,58,0.2); color: #a04a3a; }
+.maps-link {
+  display: inline-block; margin-top: 12px;
+  color: #4285F4; font-size: 13px; text-decoration: none;
+  border-bottom: 1px solid rgba(66,133,244,0.3);
+}
+.maps-link:hover { color: #2a5bbf; border-color: rgba(42,91,191,0.5); }
 .refine .q-title {
   font-size: 12px; color: #a89684;
   letter-spacing: 0.08em; text-transform: uppercase;

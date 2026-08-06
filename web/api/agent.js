@@ -349,12 +349,13 @@ export default async function handler(req, res) {
       const loc = (payload && payload.location) || null
       console.log('[recommend] scene=%s hasLoc=%s hasPlacesKey=%s',
         scene, !!(loc && loc.lat && loc.lng), !!process.env.GOOGLE_PLACES_API_KEY)
+      const placesForMatching = []
       if (loc && loc.lat && loc.lng && scene === '餐厅') {
         try {
           const places = await fetchNearbyRestaurants(loc, scene)
           console.log('[recommend] nearby places returned:', places.length)
           if (places && places.length) {
-            // 只保留 Claude 真正会用的字段，减少 token
+            placesForMatching.push(...places)
             enriched.nearbyPlaces = places.slice(0, 2).map(p => ({
               name: p.name,
               rating: p.rating,
@@ -372,6 +373,8 @@ export default async function handler(req, res) {
       try {
         const data = await callClaude(enriched, 'recommend')
         if (data && Array.isArray(data.picks)) {
+          // 把 Claude 推荐的店名匹配回 Google Maps 链接
+          enrichPicksWithMapsUrl(data.picks, placesForMatching)
           return res.status(200).json({
             ok: true, source: 'claude', data,
             meta: { nearbyPlacesCount: (enriched.nearbyPlaces || []).length }
@@ -480,6 +483,18 @@ function slimRecommendPayload(p) {
   return out
 }
 
+function enrichPicksWithMapsUrl(picks, places) {
+  if (!places || !places.length) return
+  picks.forEach(pick => {
+    const dish = pick.dish || ''
+    const match = places.find(pl => pl.name && dish.includes(pl.name))
+    if (match && match.placeId) {
+      pick.placeId = match.placeId
+      pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + match.placeId
+    }
+  })
+}
+
 // ---------------- Google Places (New) ----------------
 // 文档：https://developers.google.com/maps/documentation/places/web-service/nearby-search
 // 注意用的是 v1 endpoint（新版），FieldMask 精确挑字段控成本
@@ -537,12 +552,13 @@ async function fetchNearbyRestaurants(loc, scene) {
     .map(p => {
       const dm = haversineMeters(loc.lat, loc.lng, p.location.latitude, p.location.longitude)
       return {
+        placeId: p.id || '',
         name: (p.displayName && p.displayName.text) || '',
         primaryType: p.primaryType || (p.types && p.types[0]) || '',
         types: (p.types || []).slice(0, 4),
         rating: p.rating || null,
         userRatingCount: p.userRatingCount || 0,
-        priceLevel: p.priceLevel || null,       // PRICE_LEVEL_INEXPENSIVE / MODERATE / EXPENSIVE / VERY_EXPENSIVE
+        priceLevel: p.priceLevel || null,
         openNow: !!(p.currentOpeningHours && p.currentOpeningHours.openNow),
         address: p.formattedAddress || '',
         distanceMeters: Math.round(dm),
