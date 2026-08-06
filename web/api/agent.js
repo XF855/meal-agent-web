@@ -357,7 +357,7 @@ export default async function handler(req, res) {
           console.log('[recommend] nearby places returned:', places.length)
           if (places && places.length) {
             placesForMatching.push(...places)
-            enriched.nearbyPlaces = places.slice(0, 2).map(p => ({
+            enriched.nearbyPlaces = places.slice(0, 4).map(p => ({
               name: p.name,
               placeId: p.placeId,
               rating: p.rating,
