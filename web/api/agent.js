@@ -35,7 +35,7 @@ const SYSTEM_PROMPT = `你是一个"饮食决策 Agent"。目标：在安全、�
    - nearbyPlaces 只有 1~2 家时，至少一张来自 nearbyPlaces 即可，其余可自由发挥。
    - dish 字段格式："店名 · 具体菜品"。
    - reason 里必须提到评分（rating）和距离（distanceMeters），例如"评分 4.6 · 约 240m"。
-   - 用 primaryType 和 typicalDishes 判断该店可能提供什么菜；如果这家店的品类与用户过敏/忌口冲突，则跳过该店。
+   - 用 typicalDishes 判断该店可能提供什么菜；如果这家店的品类与用户过敏/忌口冲突，则跳过该店。
    - 优先高评分（>=4.3）且评价数不少的店（userRatingCount >= 40）；两者都满足时距离越近越优。如果都不满足这些阈值，仍可使用但注明评分一般。
 8. 若用户填了 refineHint（"更健康" / "更符合口味"），下一次推荐要显著向该方向靠拢。
 9. 输出必须是合法 JSON，字段严格匹配用户消息中的 schema，不要输出 JSON 以外的任何字符。`
@@ -201,7 +201,7 @@ const SCHEMAS = {
 // 各 action 的 token 上限：越大越慢，越小越可能被截断
 const MAX_TOKENS = {
   recognizeMeal: 400,
-  recommend:     700,
+  recommend:     500,
   dailyNutrition: 500,
   party:         900,
   chat:          400
@@ -368,12 +368,10 @@ export default async function handler(req, res) {
           console.log('[recommend] nearby places returned:', places.length)
           if (places && places.length) {
             // 只保留 Claude 真正会用的字段，减少 token
-            enriched.nearbyPlaces = places.slice(0, 4).map(p => ({
+            enriched.nearbyPlaces = places.slice(0, 3).map(p => ({
               name: p.name,
-              primaryType: p.primaryType,
               rating: p.rating,
               userRatingCount: p.userRatingCount,
-              priceLevel: p.priceLevel,
               distanceMeters: p.distanceMeters,
               typicalDishes: p.typicalDishes
             }))
