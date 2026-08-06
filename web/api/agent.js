@@ -31,11 +31,12 @@ const SYSTEM_PROMPT = `你是一个"饮食决策 Agent"。目标：在安全、�
 5. 菜名要具体，附大致份量、做法或点单方式。
 6. 若提供了近期外卖店铺记录（recentStores），可以直接推荐用户常吃店铺里的菜（记得写出店名）。
 7. 若提供了附近店家列表（nearbyPlaces）且用户场景是"餐厅"：
-   - 三张推荐卡里至少有两张要来自 nearbyPlaces。
+   - nearbyPlaces 有 >=3 家时，三张推荐卡里至少两张要来自 nearbyPlaces。
+   - nearbyPlaces 只有 1~2 家时，至少一张来自 nearbyPlaces 即可，其余可自由发挥。
    - dish 字段格式："店名 · 具体菜品"。
    - reason 里必须提到评分（rating）和距离（distanceMeters），例如"评分 4.6 · 约 240m"。
    - 用 primaryType 和 typicalDishes 判断该店可能提供什么菜；如果这家店的品类与用户过敏/忌口冲突，则跳过该店。
-   - 优先高评分（>=4.3）且评价数不少的店（userRatingCount >= 40）；两者都满足时距离越近越优。
+   - 优先高评分（>=4.3）且评价数不少的店（userRatingCount >= 40）；两者都满足时距离越近越优。如果都不满足这些阈值，仍可使用但注明评分一般。
 8. 若用户填了 refineHint（"更健康" / "更符合口味"），下一次推荐要显著向该方向靠拢。
 9. 输出必须是合法 JSON，字段严格匹配用户消息中的 schema，不要输出 JSON 以外的任何字符。`
 
@@ -501,19 +502,19 @@ async function fetchNearbyRestaurants(loc, scene) {
   const key = process.env.GOOGLE_PLACES_API_KEY
   if (!key) return []
 
-  // 场景=餐厅：涵盖堂食 + 外卖 + 快餐，1500m 半径
-  const radius = 1500
+  // 场景=餐厅：涵盖堂食 + 外卖 + 快餐，3000m 半径（大陆 Google 数据稀疏）
+  const radius = 3000
   const includedTypes = ['restaurant', 'meal_takeaway', 'fast_food_restaurant', 'cafe', 'bakery']
   const body = {
     includedTypes,
-    maxResultCount: 15,
+    maxResultCount: 20,
     locationRestriction: {
       circle: {
         center: { latitude: loc.lat, longitude: loc.lng },
         radius
       }
     },
-    rankPreference: 'POPULARITY',
+    rankPreference: 'DISTANCE',
     languageCode: 'zh-CN'
   }
   const fieldMask = [
@@ -543,9 +544,10 @@ async function fetchNearbyRestaurants(loc, scene) {
     throw new Error('places_http_' + res.status + ' ' + text.slice(0, 200))
   }
   const data = await res.json()
-  const places = (data && data.places) || []
+  const rawPlaces = (data && data.places) || []
+  console.log('[places] google raw count:', rawPlaces.length)
 
-  return places
+  return rawPlaces
     .filter(p => p && p.location && p.displayName)
     .map(p => {
       const dm = haversineMeters(loc.lat, loc.lng, p.location.latitude, p.location.longitude)
@@ -562,8 +564,8 @@ async function fetchNearbyRestaurants(loc, scene) {
         typicalDishes: dishHintByType(p.primaryType || (p.types && p.types[0]) || '')
       }
     })
-    // 过滤掉评分过低或几乎没评分的
-    .filter(p => (p.rating || 0) >= 3.8 && p.userRatingCount >= 15)
+    // 大陆 Google Places 覆盖稀疏，放宽评级和评分数阈值
+    .filter(p => (p.rating || 0) >= 3.0 && p.userRatingCount >= 3)
     // 排序：先按评分再按距离
     .sort((a, b) => (b.rating - a.rating) || (a.distanceMeters - b.distanceMeters))
     .slice(0, 8)
