@@ -37,7 +37,21 @@
         <span class="tag" @click="quickAsk('有没有更便宜的？')">更便宜</span>
         <span class="tag" @click="quickAsk('这个菜怎么做？')">教我做法</span>
       </div>
-      <div v-if="reply" class="reply">{{ reply }}</div>
+      <div v-if="replyData" class="reply">
+        <!-- 纯文本回复 -->
+        <div v-if="replyData.reply" class="reply-text">{{ replyData.reply }}</div>
+
+        <!-- 结构化卡片追问结果 -->
+        <template v-if="replyData.cards && replyData.cards.length">
+          <div v-for="c in replyData.cards" :key="c.title + c.dish" class="mini-card">
+            <div class="mini-title">{{ c.title }}</div>
+            <div class="mini-dish">{{ c.dish }}</div>
+            <div class="mini-reason" v-if="c.reason">{{ c.reason }}</div>
+          </div>
+        </template>
+
+        <div v-if="replyData.note" class="reply-note">{{ replyData.note }}</div>
+      </div>
     </div>
 
     <button class="btn-primary" @click="onPick">就吃这个</button>
@@ -46,28 +60,41 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import * as agent from '../services/agent.js'
 import { getPending, getProfile, getTodayContext, appendDiary } from '../services/store.js'
 
 const router = useRouter()
 const pick = ref({ allergens: [], swaps: [] })
-const reply = ref('')
+const replyData = ref(null)
+const loadingReply = ref(false)
 
 onMounted(() => {
   pick.value = getPending('pick') || { allergens: [], swaps: [] }
 })
 
 async function quickAsk(q) {
-  reply.value = '思考中…'
+  loadingReply.value = true
+  replyData.value = null
   const r = await agent.chat({
     userText: q,
     profile: getProfile(),
     todayContext: getTodayContext(),
     history: [{ role: 'agent', text: pick.value.dish }]
   })
-  reply.value = (r && r.data && r.data.reply) || '（无回复）'
+  loadingReply.value = false
+  const d = r && r.data
+  if (!d) { replyData.value = { reply: '（无回复）' }; return }
+  // 富格式：有 cards / note / reply 任一都渲染
+  if (d.cards || d.reply || d.note) {
+    replyData.value = d
+  } else if (typeof d === 'object') {
+    // 模型返回了不认识的 JSON → 无格式显示
+    replyData.value = { reply: JSON.stringify(d, null, 2) }
+  } else {
+    replyData.value = { reply: String(d) }
+  }
 }
 
 function guessMeal() {
@@ -102,8 +129,33 @@ function onPick() {
 }
 .pick-reason { color: #5a4a3f; font-size: 14px; line-height: 1.7; margin: 0; }
 .reply {
-  margin-top: 16px; padding: 16px 18px;
+  margin-top: 16px;
+}
+.reply-text {
+  padding: 14px 16px;
   background: #f3ecdf; border-radius: 12px;
   color: #2a1e17; font-size: 14px; line-height: 1.7;
+  margin-bottom: 14px;
+}
+.mini-card {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(74,52,40,0.08);
+}
+.mini-card:last-of-type { border-bottom: none; }
+.mini-title {
+  color: #c46a3a; font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.mini-dish {
+  font-size: 16px; font-weight: 400; color: #2a1e17;
+  line-height: 1.4; margin-bottom: 4px;
+}
+.mini-reason { color: #5a4a3f; font-size: 13px; line-height: 1.6; }
+.reply-note {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid rgba(74,52,40,0.08);
+  color: #a89684; font-size: 13px;
+  line-height: 1.6; font-style: italic;
 }
 </style>
