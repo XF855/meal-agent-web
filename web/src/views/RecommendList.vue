@@ -97,6 +97,14 @@ function submitRefineText() {
 onMounted(() => {
   if (picks.value.length) return
   const last = getLastReco()
+  const todayCtx = getTodayContext()
+  const todaySavedAt = (todayCtx && todayCtx.savedAt) || 0
+  const recoAt = (last && last.at) || 0
+  // 今日状态比上次推荐更新 → 自动刷新
+  if (todaySavedAt > recoAt) {
+    load(null)
+    return
+  }
   if (last && last.picks && last.picks.length) {
     picks.value = last.picks
     nearbyUsed.value = last.nearbyUsed || 0
