@@ -81,6 +81,20 @@
         </div>
       </div>
 
+      <div class="section-label">单餐预算</div>
+      <div class="row">
+        <span v-for="o in budgetOptions" :key="o" class="tag"
+              :class="{active: budgetMode === 'preset' && ctx.budget === o}"
+              @click="setBudget(o)">{{ o }}</span>
+        <span class="tag" :class="{active: budgetMode === 'custom'}" @click="budgetMode = 'custom'">自定义</span>
+      </div>
+      <div v-if="budgetMode === 'custom'" class="budget-custom">
+        <input class="input budget-num" type="number" placeholder="下限" v-model="budgetMin" @change="saveBudgetCustom"/>
+        <span class="budget-dash">—</span>
+        <input class="input budget-num" type="number" placeholder="上限" v-model="budgetMax" @change="saveBudgetCustom"/>
+        <span class="budget-unit">元</span>
+      </div>
+
       <div class="section-label">此刻特别想吃</div>
       <div class="row">
         <span v-for="o in craveOptions" :key="o" class="tag"
@@ -163,6 +177,10 @@ const nutritionLoading = ref(false)
 const expanded = ref(-1)   // 当前展开的营养项索引；-1 表示全部收起
 const location = ref(null)
 const locating = ref(false)
+const budgetMode = ref('preset')
+const budgetMin = ref('')
+const budgetMax = ref('')
+const budgetOptions = ['≤ 20 元', '20~40 元', '40~80 元', '≥ 80 元']
 
 async function refreshLocation() {
   if (locating.value) return
@@ -261,6 +279,10 @@ onMounted(() => {
   // 兼容旧数据：外卖/食堂 → 都并入 餐厅
   if (ctx.scene === '外卖' || ctx.scene === '食堂') ctx.scene = '餐厅'
   personalNote.value = saved.personalNote || ''
+  budgetMode.value = saved.budgetMode || 'preset'
+  budgetMin.value = saved.budgetMin || ''
+  budgetMax.value = saved.budgetMax || ''
+  if (!ctx.budget && !budgetMode.value) ctx.budget = '20~40 元'
 
   greeting.value = timeGreeting()
   nextMeal.value = nextMealGuess()
@@ -287,10 +309,24 @@ onMounted(() => {
 
 function set(field, val) {
   ctx[field] = val
-  setTodayContext({ ...ctx, personalNote: personalNote.value })
+  saveCtx()
+}
+function setBudget(val) {
+  budgetMode.value = 'preset'
+  ctx.budget = val
+  saveCtx()
+}
+function saveBudgetCustom() {
+  const min = budgetMin.value.trim()
+  const max = budgetMax.value.trim()
+  ctx.budget = (min && max) ? `${min}~${max} 元` : (min ? `≥ ${min} 元` : (max ? `≤ ${max} 元` : ''))
+  saveCtx()
+}
+function saveCtx() {
+  setTodayContext({ ...ctx, personalNote: personalNote.value, budget: ctx.budget, budgetMode: budgetMode.value, budgetMin: budgetMin.value, budgetMax: budgetMax.value })
 }
 function saveNote() {
-  setTodayContext({ ...ctx, personalNote: personalNote.value })
+  saveCtx()
 }
 function saveManualEntry() {
   const text = manualText.value.trim()
@@ -311,7 +347,7 @@ function guessMeal() {
   return '夜宵'
 }
 function goRecommend() {
-  setTodayContext({ ...ctx, personalNote: personalNote.value })
+  saveCtx()
   router.push('/recommend')
 }
 
@@ -321,7 +357,7 @@ async function loadNutrition() {
     profile: getProfile(),
     ageMode: deriveAgeMode(getProfile()),
     recentDiary: getDiary().slice(0, 10),
-    todayContext: { ...ctx, personalNote: personalNote.value }
+    todayContext: { ...ctx, personalNote: personalNote.value, budget: ctx.budget }
   })
   nutritionLoading.value = false
   if (r && r.ok && r.data) { nutrition.value = r.data; setCachedNutrition(r.data) }
@@ -473,4 +509,14 @@ function compressToDataUrl(file) {
   border: none; background: transparent;
   font-size: 24px; line-height: 1; color: #a89684; cursor: pointer;
 }
+.budget-custom {
+  display: flex; align-items: center; gap: 8px; margin-top: 12px;
+}
+.budget-num {
+  width: 100px; text-align: center; -moz-appearance: textfield; appearance: textfield;
+}
+.budget-num::-webkit-outer-spin-button,
+.budget-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.budget-dash { color: #a89684; }
+.budget-unit { color: #5a4a3f; font-size: 13px; }
 </style>

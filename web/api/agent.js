@@ -24,9 +24,10 @@ const SYSTEM_PROMPT = `你是饮食决策助手。帮用户在 1 分钟内决定
 1. 过敏(allergies)和忌口(taboos)硬性排除，绝不推荐；健康偏好(healthPrefs)软性倾向。
 2. 单人三张卡：今天最合适/最想吃/最省事。若 todayContext.crave 非"无所谓"，三张必须都贴合该方向。
 3. 场景=餐厅时：三张卡 dish 格式"店名 · 菜品"，且三张都必须从 nearbyPlaces 中选店。若 nearbyPlaces 不足 3 家，不足的用 recentStores 或已知连锁/名店补齐。reason 提评分和距离。若推荐来自 nearbyPlaces，必须把该店的 placeId 填入 placeId 字段。nearbyPlaces 已随机排列，尽量从不同店中挑选。
-4. refineHint 非空时显著向该方向靠拢。
-5. seed 字段用于增加推荐多样性，你应基于 seed 值调整你的选择（如变换菜系、烹饪方式、具体菜品），使同一用户连续请求时结果不会重复。
-6. 输出合法 JSON，匹配 schema。`
+4. todayContext.budget 是用户当前设定的单餐预算上限，三张卡都必须严格在此预算范围内。若用户用自定义范围（如"30~60 元"），dish 的总花费必须落在此区间内。
+5. refineHint 非空时显著向该方向靠拢。
+6. seed 字段用于增加推荐多样性，你应基于 seed 值调整你的选择（如变换菜系、烹饪方式、具体菜品），使同一用户连续请求时结果不会重复。
+7. 输出合法 JSON，匹配 schema。`
 
 const MOCK = {
   recognizeMeal: {
@@ -505,14 +506,17 @@ function slimRecommendPayload(p) {
         favorites: pr.favorites,
         dislikes: pr.dislikes,
         scenes: pr.scenes || []
-      }
+      },
+      // 今日预算优先于画像预算
+      budget: (p.todayContext && p.todayContext.budget) || pr.budget
     }
   }
   if (p.todayContext) {
     const t = p.todayContext
     out.todayContext = {
       hunger: t.hunger, mood: t.mood, time: t.time,
-      scene: t.scene, crave: t.crave, personalNote: t.personalNote
+      scene: t.scene, crave: t.crave, personalNote: t.personalNote,
+      budget: t.budget
     }
   }
   if (Array.isArray(p.recentDiary)) {
