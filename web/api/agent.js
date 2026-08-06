@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `你是饮食决策助手。帮用户在 1 分钟内决定
 规则：
 1. 过敏(allergies)和忌口(taboos)硬性排除，绝不推荐；健康偏好(healthPrefs)软性倾向。
 2. 单人三张卡：今天最合适/最想吃/最省事。若 todayContext.crave 非"无所谓"，三张必须都贴合该方向。
-3. 场景=餐厅时：三张卡 dish 格式"店名 · 菜品"，且三张都必须从 nearbyPlaces 中选店。若 nearbyPlaces 不足 3 家，不足的用 recentStores 或已知连锁/名店补齐。reason 提评分和距离。若推荐来自 nearbyPlaces，必须把该店的 placeId 填入 placeId 字段。
+3. 场景=餐厅时：三张卡 dish 格式"店名 · 菜品"，且三张都必须从 nearbyPlaces 中选店。若 nearbyPlaces 不足 3 家，不足的用 recentStores 或已知连锁/名店补齐。reason 提评分和距离。若推荐来自 nearbyPlaces，必须把该店的 placeId 填入 placeId 字段。用 placesSeed 随机化选择，每次尽量从不同的店中挑选。
 4. refineHint 非空时显著向该方向靠拢。
 5. 输出合法 JSON，匹配 schema。`
 
@@ -219,7 +219,7 @@ async function callClaude(userJson, schemaKey, opts) {
   const body = {
     model: MODEL,
     max_tokens: MAX_TOKENS[schemaKey] || 900,
-    temperature: 0,
+    temperature: (opts && opts.temperature != null) ? opts.temperature : 0,
     system: SYSTEM_PROMPT,
     tools: [tool],
     tool_choice: { type: 'tool', name: tool.name },
@@ -357,7 +357,10 @@ export default async function handler(req, res) {
           console.log('[recommend] nearby places returned:', places.length)
           if (places && places.length) {
             placesForMatching.push(...places)
-            enriched.nearbyPlaces = places.slice(0, 4).map(p => ({
+            // 随机打乱顺序 + 随机种子，让每次推荐结果不同
+            enriched.placesSeed = Math.floor(Math.random() * 100000)
+            const shuffled = [...places].sort(() => Math.random() - 0.5)
+            enriched.nearbyPlaces = shuffled.slice(0, 4).map(p => ({
               name: p.name,
               placeId: p.placeId,
               rating: p.rating,
@@ -373,7 +376,7 @@ export default async function handler(req, res) {
         console.log('[recommend] skipping places (scene not restaurant/canteen or no location)')
       }
       try {
-        const data = await callClaude(enriched, 'recommend')
+        const data = await callClaude(enriched, 'recommend', { temperature: 0.6 })
         if (data && Array.isArray(data.picks)) {
           // 把每张推荐卡匹配到对应餐厅的 Google Maps 链接
           for (const pick of data.picks) {
