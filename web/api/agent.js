@@ -377,16 +377,21 @@ export default async function handler(req, res) {
         if (data && Array.isArray(data.picks)) {
           // 把每张推荐卡匹配到对应餐厅的 Google Maps 链接
           for (const pick of data.picks) {
+            // 优先用 Claude 直接返回的 placeId
+            if (pick.placeId && placesForMatching.some(p => p.placeId === pick.placeId)) {
+              pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + pick.placeId
+              console.log('[maps] Claude returned placeId:', pick.placeId)
+              continue
+            }
+            // fallback: 文本匹配
             const dish = pick.dish || ''
             const dishShop = dish.split(/[·・]/)[0].trim()
             console.log('[maps] matching dish:', dish.slice(0, 50), '| shopPart:', dishShop)
             for (const pl of placesForMatching) {
               if (!pl.name || !pl.placeId) continue
               const short = pl.name.replace(/[（(][^)）]*[)）]/g, '').replace(/[·・].*/, '').trim()
-              // 提取英文名（括号里的英文部分）
               const enMatch = pl.name.match(/[（(]([a-zA-Z][^)）]*)[)）]/)
               const enName = enMatch ? enMatch[1].trim() : ''
-              // 多角度匹配：中文短名、英文名、完整店名
               const matched = short.includes(dishShop) || dishShop.includes(short)
                 || dish.includes(short) || dish.includes(pl.name)
                 || (enName && dish.toLowerCase().includes(enName.toLowerCase()))
@@ -397,7 +402,20 @@ export default async function handler(req, res) {
                 break
               }
             }
-            if (!pick.mapsUrl) console.log('[maps] no match for dishShop:', dishShop, 'places:', placesForMatching.map(p => p.name).join(', '))
+            if (!pick.mapsUrl) {
+              console.log('[maps] no match for dishShop:', dishShop)
+            }
+          }
+          // 兜底：匹配失败的卡，从未被使用的 nearbyPlaces 里依次分配
+          const usedIds = new Set(data.picks.map(p => p.placeId).filter(Boolean))
+          for (const pick of data.picks) {
+            if (pick.mapsUrl) continue
+            const fallback = placesForMatching.find(p => p.placeId && !usedIds.has(p.placeId))
+            if (fallback) {
+              pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + fallback.placeId
+              usedIds.add(fallback.placeId)
+              console.log('[maps] fallback assigned:', fallback.name)
+            }
           }
           const nearbyLinks = placesForMatching.slice(0, 4).map(p => ({
             name: p.name,
