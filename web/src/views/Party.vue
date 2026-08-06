@@ -29,7 +29,7 @@
               :class="{active: m.spicy === s.v}" @click="m.spicy = s.v">{{ s.label }}</span>
       </div>
 
-      <div class="section-label">过敏（硬性排除）</div>
+      <div class="section-label">过敏</div>
       <div class="row">
         <span v-for="a in m.allergies" :key="a" class="tag active danger-tag" @click="removeTag(m, 'allergies', a)">
           {{ a }} ×
@@ -112,7 +112,7 @@ function newMember(base) {
   return {
     id: ++idSeq,
     isMe: !!(base && base.isMe),
-    name: (base && base.name) || '朋友 ' + idSeq,
+    name: (base && base.name) || ('朋友 ' + (idSeq - 1)),
     cuisines: (base && base.cuisines) || [],
     spicy: (base && base.spicy) != null ? base.spicy : 1,
     allergies: (base && base.allergies) || [],

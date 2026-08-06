@@ -5,7 +5,7 @@
     <p class="subtitle">2 分钟内完成，只用于生成推荐，不会公开。</p>
 
     <div class="card">
-      <div class="section-label">出生年份（用于切换成长 / 成人 / 活力模式）</div>
+      <div class="section-label">出生年份</div>
       <input class="input" type="number" placeholder="例如 1998" v-model="form.birthYear" />
     </div>
 
@@ -17,7 +17,7 @@
     </div>
 
     <div class="card">
-      <div class="section-label">食物过敏（硬性过滤，永不推荐）</div>
+      <div class="section-label">食物过敏</div>
       <div class="row">
         <span v-for="o in allergyOptions" :key="o"
               class="tag" :class="{active: form.allergies.includes(o)}"
@@ -35,7 +35,7 @@
     </div>
 
     <div class="card">
-      <div class="section-label">明确忌口（宗教 / 个人不吃的食物）</div>
+      <div class="section-label">明确忌口</div>
       <div class="row">
         <span v-for="o in tabooOptions" :key="o"
               class="tag" :class="{active: form.taboos.includes(o)}"
@@ -53,7 +53,7 @@
     </div>
 
     <div class="card">
-      <div class="section-label">健康偏好（会向这些方向倾斜，但不是硬性排除）</div>
+      <div class="section-label">健康偏好</div>
       <div class="row">
         <span v-for="o in healthPrefOptions" :key="o"
               class="tag" :class="{active: form.healthPrefs.includes(o)}"
@@ -152,6 +152,9 @@ function next() {
 <style scoped>
 .progress { height: 1px; background: rgba(74,52,40,0.10); overflow: hidden; margin-bottom: 20px; }
 .progress-inner { height: 100%; background: #c46a3a; }
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row .input { flex: 1; }
 .add-btn {

@@ -32,7 +32,7 @@
 
       <div class="hr"></div>
 
-      <div class="section-label">导入别人的画像（会覆盖你现在的）</div>
+      <div class="section-label">导入已有画像</div>
       <textarea class="textarea" placeholder="粘贴 MEAL1:... 或直接粘 JSON" v-model="importDraft"></textarea>
       <button class="btn-ghost slim" @click="doImport">导入</button>
     </div>
