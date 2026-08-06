@@ -73,7 +73,7 @@ function goDetail(idx) {
   router.push('/recommend/detail')
 }
 
-onMounted(() => load(null))
+onMounted(() => { if (!picks.value.length) load(null) })
 </script>
 
 <style scoped>
