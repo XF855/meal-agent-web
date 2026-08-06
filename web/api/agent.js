@@ -414,7 +414,7 @@ export default async function handler(req, res) {
     if (action === 'chat') {
       try {
         const data = await callClaude(payload || {}, 'chat')
-        if (data && typeof data.reply === 'string') {
+        if (data && (data.reply || data.cards || data.note)) {
           return res.status(200).json({ ok: true, source: 'claude', data })
         }
       } catch (e) { console.error('chat claude error:', e.message) }
