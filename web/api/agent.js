@@ -201,7 +201,7 @@ const SCHEMAS = {
 // 各 action 的 token 上限：越大越慢，越小越可能被截断
 const MAX_TOKENS = {
   recognizeMeal: 400,
-  recommend:     500,
+  recommend:     400,
   dailyNutrition: 500,
   party:         900,
   chat:          400
@@ -244,9 +244,9 @@ async function callClaude(userJson, schemaKey, opts) {
   if (AUTH_STYLE === 'bearer') headers['authorization'] = 'Bearer ' + key
   else headers['x-api-key'] = key
 
-  // 硬超时：留 5s 给 JSON 解析和 Vercel 网关响应（maxDuration=60s）
+  // 硬超时：留 2s 给 JSON 解析和 Vercel 网关响应（maxDuration=60s）
   const abort = new AbortController()
-  const timeoutMs = (opts && opts.timeoutMs) || 55000
+  const timeoutMs = (opts && opts.timeoutMs) || 58000
   const to = setTimeout(() => abort.abort('claude_timeout'), timeoutMs)
 
   const t0 = Date.now()
@@ -368,7 +368,7 @@ export default async function handler(req, res) {
           console.log('[recommend] nearby places returned:', places.length)
           if (places && places.length) {
             // 只保留 Claude 真正会用的字段，减少 token
-            enriched.nearbyPlaces = places.slice(0, 3).map(p => ({
+            enriched.nearbyPlaces = places.slice(0, 2).map(p => ({
               name: p.name,
               rating: p.rating,
               userRatingCount: p.userRatingCount,
