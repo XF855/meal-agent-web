@@ -37,6 +37,7 @@
         <span class="tag" @click="quickAsk('有没有更便宜的？')">更便宜</span>
         <span class="tag" @click="quickAsk('这个菜怎么做？')">教我做法</span>
       </div>
+      <div v-if="loadingReply" class="loading">{{ loadingDots }}</div>
       <div v-if="replyData" class="reply">
         <!-- 纯文本回复 -->
         <div v-if="replyData.reply" class="reply-text">{{ replyData.reply }}</div>
@@ -69,6 +70,8 @@ const router = useRouter()
 const pick = ref({ allergens: [], swaps: [] })
 const replyData = ref(null)
 const loadingReply = ref(false)
+const loadingDots = ref('思考中')
+let dotsTimer = null
 
 onMounted(() => {
   pick.value = getPending('pick') || { allergens: [], swaps: [] }
@@ -77,12 +80,16 @@ onMounted(() => {
 async function quickAsk(q) {
   loadingReply.value = true
   replyData.value = null
+  loadingDots.value = '思考中'
+  let n = 0
+  dotsTimer = setInterval(() => { n = (n + 1) % 4; loadingDots.value = '思考中' + '.'.repeat(n) }, 400)
   const r = await agent.chat({
     userText: q,
     profile: getProfile(),
     todayContext: getTodayContext(),
     history: [{ role: 'agent', text: pick.value.dish }]
   })
+  clearInterval(dotsTimer)
   loadingReply.value = false
   const d = r && r.data
   if (!d) { replyData.value = { reply: '（无回复）' }; return }
@@ -157,5 +164,10 @@ function onPick() {
   border-top: 1px solid rgba(74,52,40,0.08);
   color: #a89684; font-size: 13px;
   line-height: 1.6; font-style: italic;
+}
+.loading {
+  margin-top: 16px; padding: 14px 16px;
+  background: #f3ecdf; border-radius: 12px;
+  color: #a89684; font-size: 14px;
 }
 </style>
