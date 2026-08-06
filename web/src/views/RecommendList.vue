@@ -34,7 +34,7 @@ import * as agent from '../services/agent.js'
 import {
   getProfile, getTodayContext, getDiary, setPending,
   setLastReco, getLastReco, deriveAgeMode, getDeliveryStores,
-  getSavedLocation
+  getSavedLocation, requestGeolocation
 } from '../services/store.js'
 
 const router = useRouter()
@@ -48,13 +48,15 @@ async function load(refineHint) {
   const last = getLastReco()
   const todayCtx = getTodayContext()
   const wantsPlaces = todayCtx && todayCtx.scene === '餐厅'
+  let loc = wantsPlaces ? getSavedLocation() : null
+  if (wantsPlaces && !loc) loc = await requestGeolocation()
   const r = await agent.recommend({
     profile,
     todayContext: todayCtx,
     recentDiary: getDiary().slice(0, 6),
     ageMode: deriveAgeMode(profile),
     recentStores: getDeliveryStores(5),
-    location: wantsPlaces ? getSavedLocation() : null,
+    location: loc,
     refineHint,
     previousPicks: last ? last.picks : null
   })
