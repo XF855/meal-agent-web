@@ -1,0 +1,15 @@
+.pick-title { color: #ff7043; font-size: 26rpx; font-weight: 600; margin-bottom: 8rpx; }
+.pick-dish { font-size: 34rpx; font-weight: 600; margin-bottom: 12rpx; }
+.pick-meta { display: flex; flex-wrap: wrap; margin-bottom: 12rpx; }
+.pick-reason { color: #666; font-size: 26rpx; line-height: 1.5; }
+
+.extra-input-area {
+  display: flex; align-items: center; margin-top: 30rpx;
+  background: #f5f5f5; border-radius: 16rpx; padding: 0 20rpx;
+}
+.extra-input { flex: 1; height: 80rpx; font-size: 28rpx; }
+.extra-input-placeholder { color: #999; }
+.btn-send {
+  font-size: 26rpx; color: #fff; background: #ff7043;
+  border-radius: 12rpx; padding: 10rpx 24rpx; margin-left: 16rpx;
+}

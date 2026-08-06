@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="subtitle" wx:if="{{loading}}">Agent 正在读取你的画像和今日状态…</view>
+
+  <view wx:for="{{picks}}" wx:key="key" class="card" bindtap="goDetail" data-idx="{{index}}">
+    <view class="pick-title">{{item.title}}</view>
+    <view class="pick-dish">{{item.dish}}</view>
+    <view class="pick-meta">
+      <text class="tag tag-active">预算 {{item.budget}}</text>
+      <text class="tag">用时 {{item.time}}</text>
+      <text wx:for="{{item.allergens}}" wx:for-item="a" wx:key="*this" class="tag">过敏原 {{a}}</text>
+    </view>
+    <view class="pick-reason">{{item.reason}}</view>
+  </view>
+
+  <view class="btn-ghost" bindtap="onRefresh" wx:if="{{!loading}}">换一批</view>
+
+  <view class="extra-input-area" wx:if="{{!loading}}">
+    <input class="extra-input"
+           value="{{extraRequirement}}"
+           placeholder="补充需求，回车发送…"
+           bindinput="onExtraInput"
+           bindconfirm="onExtraConfirm"
+           confirm-type="send"
+           maxlength="200"/>
+    <view class="btn-send" bindtap="onExtraConfirm">发送</view>
+  </view>
+</view>
