@@ -487,10 +487,19 @@ function enrichPicksWithMapsUrl(picks, places) {
   if (!places || !places.length) return
   picks.forEach(pick => {
     const dish = pick.dish || ''
-    const match = places.find(pl => pl.name && dish.includes(pl.name))
+    // 先用完整店名匹配，再试去掉括号内容后的短名
+    const match = places.find(pl => {
+      if (!pl.name) return false
+      if (dish.includes(pl.name)) return true
+      const shortName = pl.name.replace(/\(.*\)/g, '').replace(/（.*）/g, '').trim()
+      return shortName && dish.includes(shortName)
+    })
     if (match && match.placeId) {
       pick.placeId = match.placeId
       pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + match.placeId
+      console.log('[maps] matched pick dish to place:', match.name)
+    } else {
+      console.log('[maps] no match for dish:', dish.slice(0, 40))
     }
   })
 }

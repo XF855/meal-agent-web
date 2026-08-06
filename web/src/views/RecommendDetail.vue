@@ -4,6 +4,7 @@
       <div class="pick-title">{{ pick.title }}</div>
       <div class="pick-dish">{{ pick.dish }}</div>
       <p class="pick-reason">{{ pick.reason }}</p>
+      <a v-if="pick.mapsUrl" :href="pick.mapsUrl" target="_blank" class="maps-link">Google Maps 查看 →</a>
 
       <div class="section-label">预计</div>
       <div class="row">
@@ -170,4 +171,10 @@ function onPick() {
   background: #f3ecdf; border-radius: 12px;
   color: #a89684; font-size: 14px;
 }
+.maps-link {
+  display: inline-block; margin-top: 12px;
+  color: #4285F4; font-size: 13px; text-decoration: none;
+  border-bottom: 1px solid rgba(66,133,244,0.3);
+}
+.maps-link:hover { color: #2a5bbf; border-color: rgba(42,91,191,0.5); }
 </style>
