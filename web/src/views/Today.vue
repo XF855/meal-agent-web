@@ -105,8 +105,19 @@
         <div class="grid-item" @click="goRecommend">
           <div class="ico">🍽</div>帮我决定
         </div>
-        <div class="grid-item" @click="$router.push('/diary')">
-          <div class="ico">📔</div>饮食日记
+        <div class="grid-item" @click="showManualEntry = true">
+          <div class="ico">📔</div>手动添加饮食日记
+        </div>
+      </div>
+      <!-- 手动记录弹层 -->
+      <div v-if="showManualEntry" class="mask" @click.self="showManualEntry = false">
+        <div class="sheet">
+          <div class="sheet-head">
+            <span>记录吃了什么</span>
+            <button class="close" @click="showManualEntry = false">×</button>
+          </div>
+          <input class="input" v-model="manualText" placeholder="例如：一碗米饭、红烧鸡肉、炒青菜" />
+          <button class="btn-primary" style="margin-top:16px;" @click="saveManualEntry">保存</button>
         </div>
       </div>
       <div v-if="capturing" class="subtitle" style="margin-top: 8px;">
@@ -127,7 +138,7 @@ import { useRouter } from 'vue-router'
 import {
   getProfile, getDiary, getTodayContext, setTodayContext,
   deriveAgeMode, setPending, getDeliveryStores,
-  getSavedLocation, requestGeolocation
+  getSavedLocation, requestGeolocation, appendDiary
 } from '../services/store.js'
 import { recognizeMeal, dailyNutrition } from '../services/agent.js'
 
@@ -137,6 +148,8 @@ const ctx = reactive({
   scene: '餐厅', crave: '无所谓'
 })
 const personalNote = ref('')
+const showManualEntry = ref(false)
+const manualText = ref('')
 const greeting = ref('')
 const modeLabel = ref('')
 const nextMeal = ref('')
@@ -275,6 +288,24 @@ function set(field, val) {
 }
 function saveNote() {
   setTodayContext({ ...ctx, personalNote: personalNote.value })
+}
+function saveManualEntry() {
+  const text = manualText.value.trim()
+  if (!text) { alert('请输入吃了什么'); return }
+  appendDiary({
+    items: [{ name: text, portion: '一份', method: '手动输入' }],
+    meal: guessMeal(), confirmed: false, awaitingFeedback: false
+  })
+  manualText.value = ''
+  showManualEntry.value = false
+}
+function guessMeal() {
+  const h = new Date().getHours()
+  if (h < 10) return '早餐'
+  if (h < 14) return '午餐'
+  if (h < 17) return '加餐'
+  if (h < 21) return '晚餐'
+  return '夜宵'
 }
 function goRecommend() {
   setTodayContext({ ...ctx, personalNote: personalNote.value })
@@ -418,5 +449,25 @@ function compressToDataUrl(file) {
   color: #c46a3a; margin-left: 8px;
   cursor: pointer; text-decoration: underline;
   text-underline-offset: 3px;
+}
+.mask {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.35);
+  display: flex; align-items: flex-end;
+}
+.sheet {
+  width: 100%; background: #fbf7f0;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
+}
+.sheet-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 18px; font-weight: 400; margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+.close {
+  border: none; background: transparent;
+  font-size: 24px; line-height: 1; color: #a89684; cursor: pointer;
 }
 </style>

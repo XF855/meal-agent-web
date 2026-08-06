@@ -27,10 +27,6 @@
       </div>
     </template>
 
-    <p v-if="groups.length === 0" class="subtitle" style="text-align:center; margin-top:40px;">
-      还没有记录，去 Agent 页上传第一顿饭吧。
-    </p>
-
     <!-- 编辑弹层 -->
     <div v-if="editing" class="mask" @click.self="cancelEdit">
       <div class="sheet">
@@ -98,7 +94,7 @@ function refresh() {
   const list = getDiary()
   groups.value = groupByDay(list)
   if (!list.length) {
-    summary.value = '还没有记录，回到 Agent 页上传第一顿饭吧。'
+    summary.value = '还没有记录，去上传第一顿饭吧。'
   } else {
     const week = list.filter(x => Date.now() - x.createdAt < 7 * 86400000)
     const proteins = new Set()
