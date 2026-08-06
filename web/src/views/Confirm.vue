@@ -113,6 +113,7 @@ function saveOnly() {
 function save() {
   const e = collect(); if (!e) return
   appendDiary(e); setPending('recognize', null)
+  sessionStorage.setItem('meal_force_refresh', '1')
   router.replace('/recommend')
 }
 </script>

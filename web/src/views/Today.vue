@@ -348,6 +348,7 @@ function guessMeal() {
 }
 function goRecommend() {
   saveCtx()
+  sessionStorage.setItem('meal_force_refresh', '1')
   router.push('/recommend')
 }
 
