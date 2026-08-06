@@ -9,8 +9,8 @@
 <script setup>
 const tabs = [
   { path: '/today', label: '今日' },
-  { path: '/party', label: '聚餐' },
   { path: '/diary', label: '日记' },
+  { path: '/party', label: '聚餐' },
   { path: '/mine', label: '我的' }
 ]
 </script>
