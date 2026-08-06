@@ -22,6 +22,16 @@
       <button class="btn-ghost slim" @click="load('healthier')">🥗 想更健康的</button>
       <button class="btn-ghost slim" @click="load('tastier')">😋 更符合口味的</button>
       <button class="btn-ghost slim" @click="load(null)">↻ 直接换一批</button>
+      <div class="refine-input-row">
+        <input
+          v-model="refineText"
+          class="refine-input"
+          placeholder="输入更多需求，回车发送…"
+          maxlength="200"
+          @keyup.enter="submitRefineText"
+        />
+        <button class="btn-send" @click="submitRefineText">发送</button>
+      </div>
     </div>
 
   </div>
@@ -41,6 +51,7 @@ const router = useRouter()
 const picks = ref([])
 const loading = ref(true)
 const nearbyUsed = ref(0)
+const refineText = ref('')
 
 async function load(refineHint) {
   loading.value = true
@@ -58,7 +69,8 @@ async function load(refineHint) {
     recentStores: getDeliveryStores(5),
     location: loc,
     refineHint,
-    previousPicks: last ? last.picks : null
+    previousPicks: last ? last.picks : null,
+    seed: Math.floor(Math.random() * 100000)
   })
   loading.value = false
   if (r && r.ok) {
@@ -73,6 +85,13 @@ async function load(refineHint) {
 function goDetail(idx) {
   setPending('pick', picks.value[idx])
   router.push('/recommend/detail')
+}
+
+function submitRefineText() {
+  const val = refineText.value.trim()
+  if (!val) return
+  refineText.value = ''
+  load(val)
 }
 
 onMounted(() => {
@@ -118,4 +137,24 @@ onMounted(() => {
   margin-bottom: 16px; font-weight: 400;
 }
 .btn-ghost.slim { padding: 12px 0; font-size: 14px; }
+.refine-input-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid rgba(168,150,132,0.15);
+}
+.refine-input {
+  flex: 1; padding: 10px 14px; font-size: 14px;
+  border: 1px solid rgba(168,150,132,0.3); border-radius: 10px;
+  background: rgba(245,241,238,0.6); color: #2a1e17;
+  outline: none; font-family: inherit;
+}
+.refine-input::placeholder { color: #a89684; }
+.refine-input:focus { border-color: #c46a3a; }
+.btn-send {
+  padding: 10px 20px; font-size: 13px; font-weight: 400;
+  color: #fff; background: #c46a3a; border: none;
+  border-radius: 10px; cursor: pointer; white-space: nowrap;
+  font-family: inherit; letter-spacing: 0.04em;
+}
+.btn-send:hover { background: #a85530; }
 </style>
