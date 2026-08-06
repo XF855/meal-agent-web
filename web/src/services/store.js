@@ -39,6 +39,10 @@ export function setTodayContext(ctx) { writeJSON(K_TODAY, Object.assign({ savedA
 export function getLastReco() { return readJSON(K_LAST_RECO, null) }
 export function setLastReco(r) { writeJSON(K_LAST_RECO, r) }
 
+const K_NUTRITION = 'meal_nutrition'
+export function getCachedNutrition() { return readJSON(K_NUTRITION, null) }
+export function setCachedNutrition(n) { writeJSON(K_NUTRITION, n) }
+
 export function getPending(key) {
   const p = readJSON(K_PENDING, {})
   return p[key]

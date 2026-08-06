@@ -62,7 +62,7 @@ async function load(refineHint) {
   if (r && r.ok) {
     picks.value = r.data.picks || []
     nearbyUsed.value = (r.meta && r.meta.nearbyPlacesCount) || 0
-    setLastReco({ picks: picks.value, refineHint, at: Date.now() })
+    setLastReco({ picks: picks.value, nearbyUsed: nearbyUsed.value, refineHint, at: Date.now() })
   } else {
     alert('推荐失败')
   }
@@ -73,7 +73,17 @@ function goDetail(idx) {
   router.push('/recommend/detail')
 }
 
-onMounted(() => { if (!picks.value.length) load(null) })
+onMounted(() => {
+  if (picks.value.length) return
+  const last = getLastReco()
+  if (last && last.picks && last.picks.length) {
+    picks.value = last.picks
+    nearbyUsed.value = last.nearbyUsed || 0
+    loading.value = false
+  } else {
+    load(null)
+  }
+})
 </script>
 
 <style scoped>

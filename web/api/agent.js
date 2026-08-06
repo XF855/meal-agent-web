@@ -383,9 +383,17 @@ export default async function handler(req, res) {
             for (const pl of placesForMatching) {
               if (!pl.name || !pl.placeId) continue
               const short = pl.name.replace(/[（(][^)）]*[)）]/g, '').replace(/[·・].*/, '').trim()
-              if (short.includes(dishShop) || dishShop.includes(short) || dish.includes(short) || dish.includes(pl.name)) {
+              // 提取英文名（括号里的英文部分）
+              const enMatch = pl.name.match(/[（(]([a-zA-Z][^)）]*)[)）]/)
+              const enName = enMatch ? enMatch[1].trim() : ''
+              // 多角度匹配：中文短名、英文名、完整店名
+              const matched = short.includes(dishShop) || dishShop.includes(short)
+                || dish.includes(short) || dish.includes(pl.name)
+                || (enName && dish.toLowerCase().includes(enName.toLowerCase()))
+                || (dishShop && pl.name.includes(dishShop))
+              if (matched) {
                 pick.mapsUrl = 'https://www.google.com/maps/place/?q=place_id:' + pl.placeId
-                console.log('[maps] matched:', dishShop, '->', short, '->', pl.name)
+                console.log('[maps] matched:', dishShop, '->', short, pl.name)
                 break
               }
             }

@@ -138,7 +138,8 @@ import { useRouter } from 'vue-router'
 import {
   getProfile, getDiary, getTodayContext, setTodayContext,
   deriveAgeMode, setPending, getDeliveryStores,
-  getSavedLocation, requestGeolocation, appendDiary
+  getSavedLocation, requestGeolocation, appendDiary,
+  getCachedNutrition, setCachedNutrition
 } from '../services/store.js'
 import { recognizeMeal, dailyNutrition } from '../services/agent.js'
 
@@ -275,8 +276,10 @@ onMounted(() => {
       : '最近两餐蔬菜较少，下一餐可以优先补充一种深色蔬菜。'
   }
 
-  // 首屏立即拉一次营养建议（有缓存 5 分钟）
-  loadNutrition()
+  // 营养建议优先读缓存
+  const cached = getCachedNutrition()
+  if (cached) { nutrition.value = cached }
+  else loadNutrition()
 
   // 若已授权过位置，读出缓存
   location.value = getSavedLocation()
@@ -321,7 +324,7 @@ async function loadNutrition() {
     todayContext: { ...ctx, personalNote: personalNote.value }
   })
   nutritionLoading.value = false
-  if (r && r.ok && r.data) nutrition.value = r.data
+  if (r && r.ok && r.data) { nutrition.value = r.data; setCachedNutrition(r.data) }
 }
 
 // 拍照 → 压缩 → 调 recognizeMeal → 进 Confirm 页
